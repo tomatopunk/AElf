@@ -42,17 +42,18 @@ namespace AElf.Network.Peers
         void ResetSync();
         
         void StashAnnouncement(Announce announce);
-        int GetLowestAnnouncement();
+        Announce GetLowestAnnouncement();
 
         int SyncTarget { get; }
 
         void SyncToHeight(int start, int target);
         bool SyncNextHistory();
-        bool SyncNextAnnouncement();
+        byte[] SyncNextAnnouncement();
 
         void AddBranchedBlock(IBlock block);
 
         void RequestHeaders(int headerIndex, int headerRequestCount);
         void CleanAnnouncements(int blockHeight);
+        void CleanAnnouncement(byte[] blockId);
     }
 }

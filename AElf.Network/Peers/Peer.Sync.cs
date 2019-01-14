@@ -68,9 +68,9 @@ namespace AElf.Network.Peers
         /// </summary>
         public bool AnyStashed => _announcements.Any();
 
-        public int GetLowestAnnouncement()
+        public Announce GetLowestAnnouncement()
         {
-            return _announcements?.OrderBy(a => a.Height).FirstOrDefault()?.Height ?? 0;
+            return _announcements?.OrderBy(a => a.Height).FirstOrDefault();
         }
 
         /// <summary>
@@ -154,6 +154,19 @@ namespace AElf.Network.Peers
             _announcements.RemoveAll(a => a.Height <= blockHeight);
         }
 
+        public void CleanAnnouncement(byte[] blockId)
+        {
+            if (IsDisposed)
+                return;
+
+            var an = _announcements.FirstOrDefault(a => a.Id.ToByteArray().BytesEqual(blockId));
+
+            if (an != null)
+            {
+                CleanAnnouncements(an.Height);
+            }
+        }
+
         /// <summary>
         /// Will trigger the request for the next announcement. If there's no more announcements to sync
         /// this method return false. The only way to trigger the sync is to call this method with an
@@ -161,7 +174,7 @@ namespace AElf.Network.Peers
         /// </summary>
         /// <exception cref="InvalidOperationException">If this method is called when not syncing
         /// and with an empty cache the method throws.</exception>
-        public bool SyncNextAnnouncement()
+        public byte[] SyncNextAnnouncement()
         {
             if (!IsSyncingAnnounced && !_announcements.Any())
                 throw new InvalidOperationException($"Call to {nameof(SyncNextAnnouncement)} with no stashed announcements.");
@@ -169,7 +182,7 @@ namespace AElf.Network.Peers
             if (!_announcements.Any())
             {
                 SyncedAnnouncement = null;
-                return false;
+                return null;
             }
 
             var nextAnnouncement = _announcements.OrderBy(a => a.Height).First();
@@ -177,9 +190,10 @@ namespace AElf.Network.Peers
             SyncedAnnouncement = nextAnnouncement;
             _announcements.Remove(SyncedAnnouncement);
 
-            RequestBlockById(SyncedAnnouncement.Id.ToByteArray(), SyncedAnnouncement.Height);
+            var id = SyncedAnnouncement.Id.ToByteArray();
+            RequestBlockById(id, SyncedAnnouncement.Height);
 
-            return true;
+            return id;
         }
 
         public bool IsDownloadingBranch => LastRequested != null;
