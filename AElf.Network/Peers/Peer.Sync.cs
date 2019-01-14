@@ -50,7 +50,7 @@ namespace AElf.Network.Peers
         /// Property that is true if we're currently syncing blocks from this peer.
         /// 
         /// </summary>
-        public bool IsSyncing => IsSyncingHistory || IsSyncingAnnounced;
+        public bool IsSyncing => IsSyncingHistory || IsSyncingAnnounced || IsDownloadingBranch;
 
         /// <summary>
         /// Represents our best knowledge about the peers height. This is updated
@@ -182,6 +182,40 @@ namespace AElf.Network.Peers
             return true;
         }
 
+        public bool IsDownloadingBranch => LastRequested != null;
+        public byte[] LastRequested { get; set; }
+
+        public List<IBlock> _syncedBranch;
+
+        // Download branch from authentification id
+        public void StartDownloadBranch()
+        {
+            _syncedBranch = new List<IBlock>();
+            LastRequested = _lastReceivedHandshake.HeadHash.ToByteArray();
+                     
+            RequestBlockById(LastRequested, _lastReceivedHandshake.Height);
+        }
+
+        public void AddBranchedBlock(IBlock block)
+        {
+            _syncedBranch.Add(block);
+            LastRequested = block.Header.PreviousBlockHash.DumpByteArray();
+            
+            RequestBlockById(LastRequested, (int)block.Index-1);
+        }
+
+        public List<IBlock> FinishBranchDownload(IBlock block)
+        {
+            _syncedBranch.Add(block);
+
+            var fullList = _syncedBranch.ToList();
+            
+            _syncedBranch = null;
+            LastRequested = null;
+            
+            return fullList;
+        }
+
         /// <summary>
         /// This method is used to update the height of the current peer.
         /// </summary>
@@ -216,13 +250,10 @@ namespace AElf.Network.Peers
         /// This method is used to stop the timer for a block request.
         /// </summary>
         /// <param name="block"></param>
-        public void StopBlockTimer(Block block)
+        public bool StopBlockTimer(Block block)
         {
             byte[] blockHash = block.GetHashBytes();
             int blockHeight = (int) block.Header.Index;
-
-            _logger.Info($"[{this}] Receiving block {block.BlockHashToHex} from {this} at height {blockHeight}, " +
-                         $"with {block.Body.Transactions.Count} txns. (TransactionListCount = {block.Body.TransactionList.Count})");
 
             lock (_blockReqLock)
             {
@@ -232,6 +263,11 @@ namespace AElf.Network.Peers
                 {
                     req.Cancel();
                     BlockRequests.Remove(req);
+                    return true;
+                }
+                else
+                {
+                    return false;
                 }
             }
         }

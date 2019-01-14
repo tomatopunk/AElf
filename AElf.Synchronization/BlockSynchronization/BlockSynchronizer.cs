@@ -155,14 +155,23 @@ namespace AElf.Synchronization.BlockSynchronization
             });
             
             MessageHub.Instance.Subscribe<BlockReceived>(async inBlock =>
-            {
-                if (inBlock.Block == null)
-                    return;
-                    
+            {       
                 _logger?.Debug($"Handling {inBlock.Block} - state {CurrentState}");
-            
-                CacheBlock(inBlock.Block);
-            
+
+                if (inBlock.Branch != null)
+                {
+                    CacheBlocks(inBlock.Branch);
+                }
+                else if (inBlock.Block != null)
+                {
+                    CacheBlock(inBlock.Block);
+                }
+                else
+                {
+                    _logger?.Warn("Invalid block message.");
+                    return;
+                }
+                
                 await TryExecuteNextCachedBlock();
             });
             
@@ -303,7 +312,7 @@ namespace AElf.Synchronization.BlockSynchronization
 
                 if (next.Index > HeadBlock.Index + 1)
                 {
-                    _logger.Warn($"Future block {next}, current height {HeadBlock.Index}, don't handle it.");
+                    _logger?.Warn($"Future block {next}, current height {HeadBlock.Index}, don't handle it.");
                     return;
                 }
 
@@ -329,6 +338,19 @@ namespace AElf.Synchronization.BlockSynchronization
                     return;
                     
                 _blockCache.Add(block);
+            }
+        }
+
+        /// <summary>
+        /// Puts a branch in the blockset
+        /// </summary>
+        /// <param name="blocks"></param>
+        private void CacheBlocks(List<IBlock> blocks)
+        {
+            lock (_blockCacheLock)
+            {
+                foreach (var block in blocks)
+                    CacheBlock(block);
             }
         }
 
@@ -377,13 +399,13 @@ namespace AElf.Synchronization.BlockSynchronization
                     MessageHub.Instance.Publish(new BlockRejected(block));
                     return;
                 }
-            
-                MessageHub.Instance.Publish(new BlockAccepted(block));
 
                 _logger?.Trace($"Pushed {block}, current state {CurrentState}, current head {HeadBlock}, blockset head {_blockSet.CurrentHead.BlockHash}");
 
                 if (HeadBlock.BlockHash != _blockSet.CurrentHead.BlockHash)
                 {
+                    MessageHub.Instance.Publish(new BlockAccepted(block));
+                    
                     if (HeadBlock.BlockHash != _blockSet.CurrentHead.Previous)
                     {
                         // Here the blockset has switched fork -> attempt to switch the blockchain
@@ -596,9 +618,18 @@ namespace AElf.Synchronization.BlockSynchronization
             return chainContext;
         }
 
-        public IBlock GetBlockByHash(Hash blockHash)
+        public IBlock GetBlockByHash(Hash blockHash, bool includeCache = true)
         {
-            return _blockCache.FirstOrDefault(b => b.GetHash() == blockHash) ?? _blockSet.GetBlockByHash(blockHash) ?? _blockChain.GetBlockByHashAsync(blockHash).Result;
+            IBlock block = null;
+            if (includeCache)
+            {
+                lock (_blockCacheLock)
+                {
+                    block = _blockCache.FirstOrDefault(b => b.GetHash() == blockHash);
+                }
+            }
+            
+            return block ?? _blockSet.GetBlockByHash(blockHash) ?? _blockChain.GetBlockByHashAsync(blockHash).Result;
         }
 
         public async Task<BlockHeaderList> GetBlockHeaderList(ulong index, int count)

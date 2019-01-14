@@ -11,7 +11,7 @@ namespace AElf.Synchronization.BlockSynchronization
         
         void Init();
         
-        IBlock GetBlockByHash(Hash blockHash);
+        IBlock GetBlockByHash(Hash blockHash, bool includeCache = true);
         Task<BlockHeaderList> GetBlockHeaderList(ulong index, int count);
     }
 }
