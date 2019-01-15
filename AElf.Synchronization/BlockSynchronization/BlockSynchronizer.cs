@@ -160,6 +160,9 @@ namespace AElf.Synchronization.BlockSynchronization
 
                 if (inBlock.Branch != null)
                 {
+                    if (_blockSet.IsBlockReceived(inBlock.Branch.FirstOrDefault()))
+                        return;
+                            
                     CacheBlocks(inBlock.Branch);
                 }
                 else if (inBlock.Block != null)
