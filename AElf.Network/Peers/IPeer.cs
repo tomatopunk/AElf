@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using AElf.Kernel;
 using AElf.Network.Connection;
 using AElf.Network.Data;
@@ -26,6 +27,11 @@ namespace AElf.Network.Peers
         Announce SyncedAnnouncement { get; }
         bool AnyStashed { get; }
         bool IsSyncing { get; }
+        bool IsDownloadingBranch { get; }
+        List<IBlock> FinishBranchDownload(IBlock block);
+        void StartDownloadBranch();
+        
+        byte[] LastRequested { get; }
 
         bool Start();
         
@@ -36,15 +42,18 @@ namespace AElf.Network.Peers
         void ResetSync();
         
         void StashAnnouncement(Announce announce);
-        int GetLowestAnnouncement();
+        Announce GetLowestAnnouncement();
 
         int SyncTarget { get; }
 
         void SyncToHeight(int start, int target);
         bool SyncNextHistory();
-        bool SyncNextAnnouncement();
+        byte[] SyncNextAnnouncement();
+
+        void AddBranchedBlock(IBlock block);
 
         void RequestHeaders(int headerIndex, int headerRequestCount);
         void CleanAnnouncements(int blockHeight);
+        void CleanAnnouncement(byte[] blockId);
     }
 }

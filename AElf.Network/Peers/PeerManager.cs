@@ -282,9 +282,10 @@ namespace AElf.Network.Peers
             MessageReader reader = new MessageReader(nsStream);
             MessageWriter writer = new MessageWriter(nsStream);
 
-            int height = (int) _chainService.GetBlockChain(Hash.Default).GetCurrentBlockHeightAsync().Result;
+            ulong height = _chainService.GetBlockChain(Hash.Default).GetCurrentBlockHeightAsync().Result;
+            IBlock headBlock = _chainService.GetBlockChain(Hash.Default).GetBlockByHeightAsync(height).Result;
 
-            IPeer peer = new Peer(client, reader, writer, NetworkConfig.Instance.ListeningPort, _nodeKey, height);
+            IPeer peer = new Peer(client, reader, writer, NetworkConfig.Instance.ListeningPort, _nodeKey, headBlock);
 
             return peer;
         }

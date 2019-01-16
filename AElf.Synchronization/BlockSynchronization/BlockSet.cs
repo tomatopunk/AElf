@@ -97,9 +97,18 @@ namespace AElf.Synchronization.BlockSynchronization
                     // update LIB
                     ulong libIndex = CurrentLib == null ? 0UL : CurrentLib.Index;
                     
-                    var blocksToConfirm = _blocks
-                        .Where(b => libIndex < b.Index && b.Index < CurrentHead.Index)
-                        .OrderByDescending(b => b.Index).ToList();
+//                    var blocksToConfirm = _blocks
+//                        .Where(b => libIndex < b.Index && b.Index < CurrentHead.Index)
+//                        .OrderByDescending(b => b.Index).ToList();
+
+                    List<BlockState> blocksToConfirm = new List<BlockState>();
+                    BlockState current = previous;
+                    
+                    while (current != null && current != CurrentLib && current.Index != 1)
+                    {
+                        blocksToConfirm.Add(current);
+                        current = current.PreviousState;
+                    }
                     
                     BlockState newLib = null;
                     foreach (var blk in blocksToConfirm)

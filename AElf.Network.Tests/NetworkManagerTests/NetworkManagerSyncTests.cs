@@ -51,7 +51,7 @@ namespace AElf.Network.Tests.NetworkManagerTests
             // register peer 
             peerManager.Raise(m => m.PeerEvent += null, new PeerEventArgs(peer.Object, PeerEventType.Added));
             
-            Assert.Null(nm.CurrentSyncSource); 
+            Assert.Null(nm.HistorySyncer); 
         }
         
         [Fact(Skip = "ignore")]
@@ -84,7 +84,7 @@ namespace AElf.Network.Tests.NetworkManagerTests
             // todo probably not a good test, but for now no choice. 
             await Task.Delay(1000);
             
-            Assert.Equal(firstPeer.Object, nm.CurrentSyncSource);
+            Assert.Equal(firstPeer.Object, nm.HistorySyncer);
             Assert.True(syncStateTrueWasFired);
             Assert.True(syncStateValue);
         }
@@ -109,7 +109,7 @@ namespace AElf.Network.Tests.NetworkManagerTests
             peerManager.Raise(m => m.PeerEvent += null, new PeerEventArgs(firstPeer.Object, PeerEventType.Added));
             peerManager.Raise(m => m.PeerEvent += null, new PeerEventArgs(scdPeer.Object, PeerEventType.Added));
             
-            Assert.Equal(firstPeer.Object, nm.CurrentSyncSource);
+            Assert.Equal(firstPeer.Object, nm.HistorySyncer);
         }
 
         #endregion
@@ -136,7 +136,7 @@ namespace AElf.Network.Tests.NetworkManagerTests
             peerManager.Raise(m => m.PeerEvent += null, new PeerEventArgs(firstPeer.Object, PeerEventType.Added));
             firstPeer.Raise(m => m.PeerDisconnected += null, new PeerDisconnectedArgs { Peer = firstPeer.Object, Reason = DisconnectReason.BlockRequestTimeout});
             
-            Assert.Null(nm.CurrentSyncSource);
+            Assert.Null(nm.HistorySyncer);
         }
         
         [Fact]
@@ -161,8 +161,8 @@ namespace AElf.Network.Tests.NetworkManagerTests
 
             firstPeer.Raise(m => m.PeerDisconnected += null, new PeerDisconnectedArgs { Peer = firstPeer.Object, Reason = DisconnectReason.BlockRequestTimeout});
             
-            Assert.NotNull(nm.CurrentSyncSource);
-            Assert.Equal(secondPeer.Object, nm.CurrentSyncSource);
+            Assert.NotNull(nm.HistorySyncer);
+            Assert.Equal(secondPeer.Object, nm.HistorySyncer);
         }
                
         #endregion

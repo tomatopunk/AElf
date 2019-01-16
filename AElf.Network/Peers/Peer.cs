@@ -60,6 +60,7 @@ namespace AElf.Network.Peers
         public Message Message { get; set; }
         
         public Block Block { get; set; }
+        public List<IBlock> Branch { get; set; }
     }
 
     /// <summary>
@@ -149,9 +150,10 @@ namespace AElf.Network.Peers
 
         public ushort Port => DistantNodeData?.Port != null ? (ushort) DistantNodeData?.Port : (ushort) 0;
 
-        public readonly int CurrentHeight;
+        public int CurrentHeight => (int)HeadBlock.Header.Index;
+        public readonly IBlock HeadBlock;
 
-        public Peer(TcpClient client, IMessageReader reader, IMessageWriter writer, int port, ECKeyPair nodeKey, int currentHeight)
+        public Peer(TcpClient client, IMessageReader reader, IMessageWriter writer, int port, ECKeyPair nodeKey, IBlock headBlock)
         {
             BlockRequests = new List<TimedBlockRequest>();
             _announcements = new List<Announce>();
@@ -170,7 +172,7 @@ namespace AElf.Network.Peers
             _messageReader = reader;
             _messageWriter = writer;
 
-            CurrentHeight = currentHeight;
+            HeadBlock = headBlock;
         }
 
         private void SetupHeartbeat()
@@ -282,9 +284,10 @@ namespace AElf.Network.Peers
                 {
                     NodeInfo = nodeInfo,
                     PublicKey = ByteString.CopyFrom(_nodeKey.PublicKey),
-                    Height = CurrentHeight,
                     Sig = ByteString.CopyFrom(sig.SigBytes),
+                    Height = CurrentHeight,
                     Version = GlobalConfig.ProtocolVersion,
+                    HeadHash = ByteString.CopyFrom(HeadBlock.GetHash().DumpByteArray())
                 };
 
                 if (_nodeKey.PublicKey == null)
@@ -292,7 +295,7 @@ namespace AElf.Network.Peers
 
                 byte[] packet = nd.ToByteArray();
 
-                _logger?.Trace($"Sending authentification : {{ port: {nd.NodeInfo.Port}, addr: {nd.PublicKey.ToByteArray().ToHex()}, height: {nd.Height}, version {nd.Version} }}");
+                _logger?.Trace($"Sending authentification : {{ port: {nd.NodeInfo.Port}, addr: {nd.PublicKey.ToByteArray().ToHex()}, current height: {nd.Height}, current hash: {nd.HeadHash.ToByteArray().ToHex()} version {nd.Version} }}");
 
                 _messageWriter.EnqueueMessage(new Message {Type = (int) MessageType.Auth, HasId = false, Length = packet.Length, Payload = packet});
 

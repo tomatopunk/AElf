@@ -67,7 +67,7 @@ namespace AElf.Synchronization.BlockSynchronization
                 return false;
             
             _confirmations.Add(pubKey);
-            return _confirmations.Count >= Math.Ceiling(2d / 3d * _miners.Count);
+            return _confirmations.Count >= Math.Ceiling(2d / 3d * (_miners.Count));
         }
 
         public IBlock GetClonedBlock()
