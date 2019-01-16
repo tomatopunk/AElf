@@ -187,13 +187,13 @@ namespace AElf.Runtime.CSharp
                     }
                     catch (TargetInvocationException ex)
                     {
-                        _currentTransactionContext.Trace.StdErr += ex.InnerException.Message;
+                        _currentTransactionContext.Trace.StdErr += ex.InnerException.StackTrace;
                         _currentTransactionContext.Trace.ExecutionStatus = ExecutionStatus.ContractError;
                     }
                     catch (Exception ex)
                     {
                         _currentTransactionContext.Trace.ExecutionStatus = ExecutionStatus.ContractError;
-                        _currentTransactionContext.Trace.StdErr += "\n" + ex;
+                        _currentTransactionContext.Trace.StdErr += "\n" + ex.StackTrace;
                     }
                 }
                 else
@@ -213,12 +213,12 @@ namespace AElf.Runtime.CSharp
                     }
                     catch (TargetInvocationException ex)
                     {
-                        _currentTransactionContext.Trace.StdErr += ex.InnerException.Message;
+                        _currentTransactionContext.Trace.StdErr += ex.InnerException.StackTrace;
                         _currentTransactionContext.Trace.ExecutionStatus = ExecutionStatus.ContractError;
                     }
                     catch (Exception ex)
                     {
-                        _currentTransactionContext.Trace.StdErr += "\n" + ex;
+                        _currentTransactionContext.Trace.StdErr += "\n" + ex.StackTrace;
                         _currentTransactionContext.Trace.ExecutionStatus = ExecutionStatus.ContractError;
                     }
                 }
