@@ -28,7 +28,7 @@ namespace AElf.Network.Tests
             Mock<IMessageWriter> messageWritter = new Mock<IMessageWriter>();
 
             ECKeyPair kp = new KeyPairGenerator().Generate();
-            Peer p = new Peer(new TcpClient(), reader.Object, messageWritter.Object, peerPort, kp, 0);
+            Peer p = new Peer(new TcpClient(), reader.Object, messageWritter.Object, peerPort, kp, null);
             
             var (_, handshake) = NetworkTestHelpers.CreateKeyPairAndHandshake(1235);
             p.AuthentifyWith(handshake); // set "other peer as authentified"
@@ -72,7 +72,7 @@ namespace AElf.Network.Tests
             Mock<IMessageWriter> messageWritter = new Mock<IMessageWriter>();
 
             ECKeyPair kp = new KeyPairGenerator().Generate();
-            Peer p = new Peer(new TcpClient(), reader.Object, messageWritter.Object, peerPort, kp, 0);
+            Peer p = new Peer(new TcpClient(), reader.Object, messageWritter.Object, peerPort, kp, null);
             
             var (_, handshake) = NetworkTestHelpers.CreateKeyPairAndHandshake(1235);
             p.AuthentifyWith(handshake); // set "other peer as authentified"
@@ -92,7 +92,7 @@ namespace AElf.Network.Tests
             // Calling the method while not in sync and no requests is invalid.
             
             ECKeyPair kp = new KeyPairGenerator().Generate();
-            Peer p = new Peer(new TcpClient(), null, null, 0, kp, 0);
+            Peer p = new Peer(new TcpClient(), null, null, 0, kp, null);
 
             Assert.Throws<InvalidOperationException>(() => p.SyncNextAnnouncement());
         }
@@ -104,7 +104,7 @@ namespace AElf.Network.Tests
             Mock<IMessageWriter> messageWritter = new Mock<IMessageWriter>();
 
             ECKeyPair kp = new KeyPairGenerator().Generate();
-            Peer p = new Peer(new TcpClient(), reader.Object, messageWritter.Object, 1234, kp, 0);
+            Peer p = new Peer(new TcpClient(), reader.Object, messageWritter.Object, 1234, kp, null);
             
             var (_, handshake) = NetworkTestHelpers.CreateKeyPairAndHandshake(1235);
             p.AuthentifyWith(handshake); // set "other peer as authentified"
@@ -129,7 +129,7 @@ namespace AElf.Network.Tests
             Assert.NotNull(req?.Id);
             
             // Should effectively request the block
-            Assert.True(movedToNext);
+            Assert.NotNull(movedToNext);
             Assert.True(req.Height == 10);
             Assert.True(req.Id.ToStringUtf8() == "FakeHash");
             
@@ -149,7 +149,7 @@ namespace AElf.Network.Tests
             Mock<IMessageWriter> messageWritter = new Mock<IMessageWriter>();
 
             ECKeyPair kp = new KeyPairGenerator().Generate();
-            Peer p = new Peer(new TcpClient(), reader.Object, messageWritter.Object, 1234, kp, 0);
+            Peer p = new Peer(new TcpClient(), reader.Object, messageWritter.Object, 1234, kp, null);
             
             var (_, handshake) = NetworkTestHelpers.CreateKeyPairAndHandshake(1235);
             p.AuthentifyWith(handshake); // set "other peer as authentified"
@@ -164,7 +164,7 @@ namespace AElf.Network.Tests
             var movedToNext = p.SyncNextAnnouncement();
             
             // Check that sync ended
-            Assert.False(movedToNext);
+            Assert.Null(movedToNext);
             
             Assert.Null(p.SyncedAnnouncement);
             Assert.False(p.AnyStashed);

@@ -172,6 +172,16 @@ namespace AElf.Synchronization.BlockExecution
                     res = BlockExecutionResult.ExecutionCancelled;
                     throw new InvalidBlockException("Block execution timeout");
                 }
+                
+                foreach (var txnRe in txnRes.Where(t => t.Status != Status.Mined))
+                {
+                    var tx = readyTxs.FirstOrDefault(t => t.GetHash() == txnRe.TransactionId);
+                    
+                    if (tx != null)
+                    {
+                        _logger?.Warn($"Transaction exec failed: {{ hash: {tx.GetHash()}, fee: {tx.Fee}, type: {tx.Type} }}");
+                    }
+                }
 
                 txnRes = SortToOriginalOrder(txnRes, readyTxs);
 
@@ -289,6 +299,7 @@ namespace AElf.Synchronization.BlockExecution
                             StateHash = Hash.Default,
                             Index = index++
                         };
+                        _logger?.Debug($"Tx contract error {{ id: {trace.TransactionId}, stdErr: {trace.StdErr}, sumarrizedState: {trace.GetSummarizedStateHash()} }} ");
                         results.Add(txResF);
                         break;
                     case ExecutionStatus.InsufficientTransactionFees:
@@ -300,6 +311,7 @@ namespace AElf.Synchronization.BlockExecution
                             StateHash = trace.GetSummarizedStateHash(),
                             Index = index++
                         };
+                        _logger?.Debug($"Tx contract error {{ id: {trace.TransactionId}, stdErr: {trace.StdErr}, sumarrizedState: {trace.GetSummarizedStateHash()} }} ");
                         results.Add(txResITF);
                         break;
                     /*case ExecutionStatus.Undefined:
