@@ -3,6 +3,7 @@ using System.Linq;
 using AElf.Common;
 using AElf.Kernel.Types.SmartContract;
 using AElf.Sdk.CSharp;
+using Google.Protobuf;
 
 namespace AElf.Contracts.Token
 {
@@ -100,6 +101,12 @@ namespace AElf.Contracts.Token
                 State.ChargedFees[sender] = 0UL;
                 State.Balances[feePool] = State.Balances[feePool].Add(fee);
             }
+        }
+
+        public void SetFeePoolAddress(Address address)
+        {
+            Assert(State.FeePoolAddress.Value != null, "Already set, cannot set again.");
+            State.FeePoolAddress.Value = address;
         }
 
     }

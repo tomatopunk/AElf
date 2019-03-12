@@ -40,5 +40,11 @@ namespace AElf.Contracts.Token
         {
             return State.Allowances[owner][spender];
         }
+
+        [View]
+        public Address FeePoolAddress()
+        {
+            return State.FeePoolAddress.Value;
+        }
     }
 }
