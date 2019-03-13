@@ -9,7 +9,7 @@ namespace AElf.Types.Tests.Extensions
     public class ExtensionTests
     {
         [Fact]
-        public void Strinig_Extension_Methods()
+        public void String_Extension_Methods()
         {
             var hexValue = Hash.Generate().ToHex();
 
@@ -28,7 +28,7 @@ namespace AElf.Types.Tests.Extensions
         }
 
         [Fact]
-        public void Numberic_Extensions_Methods()
+        public void Numberc_Extensions_Methods()
         {
             //ulong
             var uNumber = (ulong)10;

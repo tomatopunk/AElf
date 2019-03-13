@@ -64,6 +64,7 @@ namespace AElf.Runtime.CSharp.Tests
             var method = Cache.GetMethodAbi(nameof(TokenContract.Transfer));
             var parameterArray = method.SerializeParams(transferArgs);
             parameterArray.ShouldNotBeNull();
+            parameterArray.Length.ShouldBeGreaterThan(0);
         }
 
         [Fact]

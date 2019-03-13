@@ -18,13 +18,15 @@ namespace AElf.Types.Tests
 
             //Generate from String
             var address3 = Address.FromString("Test");
-            address3.ShouldNotBe(null);
+            address3.ShouldNotBeNull();
+            address3.DumpByteArray().Length.ShouldBe(TypeConsts.AddressHashLength);
 
             //Generate from byte
             var bytes = new byte[30];
             new Random().NextBytes(bytes);
             var address4 = Address.FromBytes(bytes);
             address4.ShouldNotBe(null);
+            address4.DumpByteArray().Length.ShouldBe(TypeConsts.AddressHashLength);
             
             bytes = new byte[10];
             Should.Throw<ArgumentOutOfRangeException>(() => {Address.FromBytes(bytes); });
@@ -33,6 +35,7 @@ namespace AElf.Types.Tests
             var pk = CryptoHelpers.GenerateKeyPair().PublicKey;
             var address5 = Address.FromPublicKey(pk);
             address5.ShouldNotBe(null);
+            address5.DumpByteArray().Length.ShouldBe(TypeConsts.AddressHashLength);
         }
 
         [Fact]
@@ -41,7 +44,8 @@ namespace AElf.Types.Tests
             var pk = CryptoHelpers.GenerateKeyPair().PublicKey;
             var address = Address.FromPublicKey(pk);
             var addressString = address.GetFormatted();
-            addressString.ShouldNotBe(string.Empty);
+            addressString.ShouldNotBeNullOrEmpty();
+            addressString.ShouldNotContain(" ");
         }
         
         [Fact]
@@ -62,7 +66,7 @@ namespace AElf.Types.Tests
         {
             string addStr = "5rYq3rGiULxGS51xAYF6Una1RH2bhm3REEZdda6o5NJwvRF";
             var address = Address.Parse(addStr);
-            address.ShouldNotBe(null);
+            address.ShouldNotBeNull();
             var addStr1 = address.GetFormatted();
             addStr1.ShouldBe(addStr);
 
