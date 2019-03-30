@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -11,6 +12,7 @@ using AElf.Kernel.Blockchain.Domain;
 using AElf.Kernel.SmartContract.Application;
 using AElf.Kernel.SmartContract.Domain;
 using AElf.Kernel.SmartContractExecution.Domain;
+using Microsoft.Extensions.Logging;
 using Volo.Abp.DependencyInjection;
 
 namespace AElf.Kernel.SmartContractExecution.Application
@@ -20,6 +22,7 @@ namespace AElf.Kernel.SmartContractExecution.Application
         private readonly ITransactionExecutingService _executingService;
         private readonly IBlockManager _blockManager;
         private readonly IBlockGenerationService _blockGenerationService;
+        public ILogger<BlockExecutingService> Logger { get; set; }
         
         public BlockExecutingService(ITransactionExecutingService executingService, IBlockManager blockManager,
             IBlockGenerationService blockGenerationService)
@@ -50,10 +53,12 @@ namespace AElf.Kernel.SmartContractExecution.Application
                 BlockHash = blockHeader.PreviousBlockHash,
                 BlockHeight = blockHeader.Height - 1
             };
-            var nonCancellableReturnSets =
-                await _executingService.ExecuteAsync(blockHeader, nonCancellable, CancellationToken.None, true);
-            var cancellableReturnSets =
-                await _executingService.ExecuteAsync(blockHeader, cancellable, cancellationToken, false);
+
+            var nonCancellableReturnSets = await Stopwatch.StartNew().Measure(() => _executingService.ExecuteAsync(blockHeader, nonCancellable, CancellationToken.None, true),
+                elapsed => Logger.LogInformation($"Execute non cancellable txs perf: {elapsed.Milliseconds} ms"));
+
+            var cancellableReturnSets = await Stopwatch.StartNew().Measure(() => _executingService.ExecuteAsync(blockHeader, cancellable, cancellationToken, false),
+                elapsed => Logger.LogInformation($"Execute cancellable txs perf: {elapsed.Milliseconds} ms"));
             var blockReturnSet = nonCancellableReturnSets.Concat(cancellableReturnSets).ToList();
 
             // TODO: Insert deferredTransactions to TxPool
