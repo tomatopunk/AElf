@@ -1,7 +1,9 @@
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using AElf.Common;
 using AElf.Kernel.Blockchain.Application;
 using AElf.Kernel.Blockchain.Domain;
 using AElf.Kernel.Blockchain.Events;
@@ -110,12 +112,15 @@ namespace AElf.Kernel.SmartContractExecution.Application
             {
                 var blockLink = successLinks.Last();
                 await _blockchainService.SetBestChainAsync(chain, blockLink.Height, blockLink.BlockHash);
-                await LocalEventBus.PublishAsync(new BestChainFoundEventData
+                var bestChainFoundTask = LocalEventBus.PublishAsync(new BestChainFoundEventData
                 {
                     BlockHash = chain.BestChainHash,
                     BlockHeight = chain.BestChainHeight,
                     ExecutedBlocks = successLinks.Select(p => p.BlockHash).ToList()
                 });
+
+                await Stopwatch.StartNew().Measure(() => bestChainFoundTask, 
+                     elapsed => Logger.LogInformation($"Best chain found task perf: {elapsed.Milliseconds} ms"));
             }
 
             Logger.LogInformation($"Attach blocks to best chain, status: {status}, best chain hash: {chain.BestChainHash}, height: {chain.BestChainHeight}");

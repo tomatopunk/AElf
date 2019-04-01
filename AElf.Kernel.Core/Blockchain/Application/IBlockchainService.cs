@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using AElf.Common;
@@ -258,13 +259,20 @@ namespace AElf.Kernel.Blockchain.Application
             };
 
             // Clean last branches and not linked
-            var toCleanBlocks = await _chainManager.CleanBranchesAsync(chain, chain.LastIrreversibleBlockHash,
-                chain.LastIrreversibleBlockHeight);
-            await RemoveBlocksAsync(toCleanBlocks);
+            var toCleanBlocks = await Stopwatch.StartNew().Measure(() => _chainManager.CleanBranchesAsync(chain, chain.LastIrreversibleBlockHash,
+                chain.LastIrreversibleBlockHeight), elapsed => Logger.LogInformation($"Clean branches perf: {elapsed.Milliseconds} ms"));
+//            var toCleanBlocks = await _chainManager.CleanBranchesAsync(chain, chain.LastIrreversibleBlockHash,
+//                chain.LastIrreversibleBlockHeight);
+            await Stopwatch.StartNew().Measure(() => RemoveBlocksAsync(toCleanBlocks), elapsed => Logger.LogInformation($"Remove blocks perf: {elapsed.Milliseconds} ms"));
+//            await RemoveBlocksAsync(toCleanBlocks);
 
-            await _chainManager.SetIrreversibleBlockAsync(chain, irreversibleBlockHash);
+            await Stopwatch.StartNew().Measure(() => _chainManager.SetIrreversibleBlockAsync(chain, irreversibleBlockHash),
+                elapsed => Logger.LogInformation($"Set irreversible block perf: {elapsed.Milliseconds} ms"));
+//            await _chainManager.SetIrreversibleBlockAsync(chain, irreversibleBlockHash);
 
-            await LocalEventBus.PublishAsync(eventDataToPublish);
+            await Stopwatch.StartNew().Measure(() => LocalEventBus.PublishAsync(eventDataToPublish),
+                elapsed => Logger.LogInformation($"Merge state perf: {elapsed.Milliseconds} ms"));
+//            await LocalEventBus.PublishAsync(eventDataToPublish);
         }
 
         public async Task<List<IBlockIndex>> GetReversedBlockIndexes(Hash lastBlockHash, int count)
