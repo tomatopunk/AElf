@@ -75,6 +75,7 @@ namespace AElf.Kernel.Services
                                   $"best chain hash {previousBlockHash}.");
             }
 
+            Logger.LogTrace($"Get {transactions.Count}+{pending.Count} transactions, have {(time - DateTime.UtcNow).Milliseconds} ms for mining");
             using (var cts = new CancellationTokenSource())
             {
                 cts.CancelAfter(time - DateTime.UtcNow);
