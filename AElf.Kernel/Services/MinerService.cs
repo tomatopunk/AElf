@@ -40,13 +40,13 @@ namespace AElf.Kernel.Services
         /// Mine process.
         /// </summary>
         /// <returns></returns>
-        public async Task<Block> MineAsync(Hash previousBlockHash, long previousBlockHeight, DateTime time)
+        public async Task<Block> MineAsync(Hash previousBlockHash, long previousBlockHeight, DateTime dateTime,
+            TimeSpan timeSpan)
         {
-            Logger.LogTrace($"I have {(time - DateTime.UtcNow).Milliseconds} ms for mining");
+            Logger.LogTrace($"I have {(timeSpan.Milliseconds - DateTime.UtcNow.Millisecond)} ms for mining");
 
             var executableTransactionSet = await Stopwatch.StartNew().Measure(() => _txHub.GetExecutableTransactionSetAsync(), 
                 elapsed => Logger.LogInformation($"Get transaction from perf: {elapsed.Milliseconds} ms"));
-            // var executableTransactionSet = await _txHub.GetExecutableTransactionSetAsync();
             var pending = new List<Transaction>();
             if (executableTransactionSet.PreviousBlockHash == previousBlockHash)
             {
@@ -60,7 +60,7 @@ namespace AElf.Kernel.Services
             }
             Logger.LogTrace($"Get {pending.Count} transactions, have {(time - DateTime.UtcNow).Milliseconds} ms for mining");
 
-            return await _miningService.MineAsync(previousBlockHash, previousBlockHeight, pending, time);
+            return await _miningService.MineAsync(previousBlockHash, previousBlockHeight, pending, dateTime, timeSpan);
         }
     }
 
@@ -121,13 +121,13 @@ namespace AElf.Kernel.Services
         /// Generate block
         /// </summary>
         /// <returns></returns>
-        private async Task<Block> GenerateBlock(Hash preBlockHash, long preBlockHeight)
+        private async Task<Block> GenerateBlock(Hash preBlockHash, long preBlockHeight, DateTime expectedMiningTime)
         {
             var block = await _blockGenerationService.GenerateBlockBeforeExecutionAsync(new GenerateBlockDto
             {
                 PreviousBlockHash = preBlockHash,
                 PreviousBlockHeight = preBlockHeight,
-                BlockTime = DateTime.UtcNow
+                BlockTime = expectedMiningTime
             });
             return block;
         }
@@ -139,20 +139,17 @@ namespace AElf.Kernel.Services
         }
 
         public async Task<Block> MineAsync(Hash previousBlockHash, long previousBlockHeight,
-            List<Transaction> transactions, DateTime time)
+            List<Transaction> transactions, DateTime blockTime, TimeSpan timeSpan)
         {
-            var block = await Stopwatch.StartNew().Measure(() => GenerateBlock(previousBlockHash, previousBlockHeight), 
+            var block = await Stopwatch.StartNew().Measure(() => GenerateBlock(previousBlockHash, previousBlockHeight, blockTime),
                 elapsed => Logger.LogInformation($"Gen block perf: {elapsed.Milliseconds} ms"));
-            // var block = await GenerateBlock(previousBlockHash, previousBlockHeight);
-            var systemTransactions = await  Stopwatch.StartNew().Measure(() => GenerateSystemTransactions(previousBlockHash, previousBlockHeight), 
+            var systemTransactions = await  Stopwatch.StartNew().Measure(() => GenerateSystemTransactions(previousBlockHash, previousBlockHeight),
                 elapsed => Logger.LogInformation($"Gen system tx perf: {elapsed.Milliseconds} ms"));
-            // var systemTransactions = await GenerateSystemTransactions(previousBlockHash, previousBlockHeight);
-
             var pending = transactions;
 
             using (var cts = new CancellationTokenSource())
             {
-                cts.CancelAfter(time - DateTime.UtcNow);
+                cts.CancelAfter(timeSpan);
                 block = await _blockExecutingService.ExecuteBlockAsync(block.Header,
                     systemTransactions, pending, cts.Token);
             }

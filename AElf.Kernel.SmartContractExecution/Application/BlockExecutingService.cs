@@ -48,12 +48,6 @@ namespace AElf.Kernel.SmartContractExecution.Application
             var nonCancellable = nonCancellableTransactions.ToList();
             var cancellable = cancellableTransactions.ToList();
 
-            var chainContext = new ChainContext()
-            {
-                BlockHash = blockHeader.PreviousBlockHash,
-                BlockHeight = blockHeader.Height - 1
-            };
-
             var nonCancellableReturnSets = await Stopwatch.StartNew().Measure(() => _executingService.ExecuteAsync(blockHeader, nonCancellable, CancellationToken.None, true),
                 elapsed => Logger.LogInformation($"Execute non cancellable txs perf: {elapsed.Milliseconds} ms"));
 
