@@ -42,7 +42,11 @@ namespace AElf.Kernel.Services
         /// <returns></returns>
         public async Task<Block> MineAsync(Hash previousBlockHash, long previousBlockHeight, DateTime time)
         {
-            var executableTransactionSet = await _txHub.GetExecutableTransactionSetAsync();
+            Logger.LogTrace($"I have {(time - DateTime.UtcNow).Milliseconds} ms for mining");
+
+            var executableTransactionSet = await Stopwatch.StartNew().Measure(() => _txHub.GetExecutableTransactionSetAsync(), 
+                elapsed => Logger.LogInformation($"Get transaction from perf: {elapsed.Milliseconds} ms"));
+            // var executableTransactionSet = await _txHub.GetExecutableTransactionSetAsync();
             var pending = new List<Transaction>();
             if (executableTransactionSet.PreviousBlockHash == previousBlockHash)
             {
@@ -137,8 +141,12 @@ namespace AElf.Kernel.Services
         public async Task<Block> MineAsync(Hash previousBlockHash, long previousBlockHeight,
             List<Transaction> transactions, DateTime time)
         {
-            var block = await GenerateBlock(previousBlockHash, previousBlockHeight);
-            var systemTransactions = await GenerateSystemTransactions(previousBlockHash, previousBlockHeight);
+            var block = await Stopwatch.StartNew().Measure(() => GenerateBlock(previousBlockHash, previousBlockHeight), 
+                elapsed => Logger.LogInformation($"Gen block perf: {elapsed.Milliseconds} ms"));
+            // var block = await GenerateBlock(previousBlockHash, previousBlockHeight);
+            var systemTransactions = await  Stopwatch.StartNew().Measure(() => GenerateSystemTransactions(previousBlockHash, previousBlockHeight), 
+                elapsed => Logger.LogInformation($"Gen system tx perf: {elapsed.Milliseconds} ms"));
+            // var systemTransactions = await GenerateSystemTransactions(previousBlockHash, previousBlockHeight);
 
             var pending = transactions;
 
