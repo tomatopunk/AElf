@@ -43,7 +43,7 @@ namespace AElf.Kernel.Services
         public async Task<Block> MineAsync(Hash previousBlockHash, long previousBlockHeight, DateTime dateTime,
             TimeSpan timeSpan)
         {
-            Logger.LogTrace($"I have {(timeSpan.Milliseconds - DateTime.UtcNow.Millisecond)} ms for mining");
+            Logger.LogTrace($"I have {timeSpan.Milliseconds} ms for mining");
 
             var executableTransactionSet = await Stopwatch.StartNew().Measure(() => _txHub.GetExecutableTransactionSetAsync(),
                 elapsed => Logger.LogInformation($"Get transaction from perf: {elapsed.Milliseconds} ms"));
@@ -59,7 +59,7 @@ namespace AElf.Kernel.Services
                                   $"best chain hash {previousBlockHash}.");
             }
 
-            Logger.LogTrace($"Get {pending.Count} transactions, have {timeSpan.Milliseconds - DateTime.UtcNow.Millisecond}ms for mining");
+            Logger.LogTrace($"Get {pending.Count} transactions, have {timeSpan.Milliseconds} ms for mining");
 
             return await _miningService.MineAsync(previousBlockHash, previousBlockHeight, pending, dateTime, timeSpan);
         }
