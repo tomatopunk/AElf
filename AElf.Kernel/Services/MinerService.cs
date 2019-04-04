@@ -45,7 +45,7 @@ namespace AElf.Kernel.Services
         {
             Logger.LogTrace($"I have {(timeSpan.Milliseconds - DateTime.UtcNow.Millisecond)} ms for mining");
 
-            var executableTransactionSet = await Stopwatch.StartNew().Measure(() => _txHub.GetExecutableTransactionSetAsync(), 
+            var executableTransactionSet = await Stopwatch.StartNew().Measure(() => _txHub.GetExecutableTransactionSetAsync(),
                 elapsed => Logger.LogInformation($"Get transaction from perf: {elapsed.Milliseconds} ms"));
             var pending = new List<Transaction>();
             if (executableTransactionSet.PreviousBlockHash == previousBlockHash)
@@ -58,12 +58,12 @@ namespace AElf.Kernel.Services
                                   $"{executableTransactionSet.PreviousBlockHash} which doesn't match the current " +
                                   $"best chain hash {previousBlockHash}.");
             }
-            Logger.LogTrace($"Get {pending.Count} transactions, have {(time - DateTime.UtcNow).Milliseconds} ms for mining");
+
+            Logger.LogTrace($"Get {pending.Count} transactions, have {timeSpan.Milliseconds - DateTime.UtcNow.Millisecond}ms for mining");
 
             return await _miningService.MineAsync(previousBlockHash, previousBlockHeight, pending, dateTime, timeSpan);
         }
     }
-
 
     public class MiningService : IMiningService
     {
