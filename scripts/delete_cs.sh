@@ -2,8 +2,8 @@
 p=`pwd`
 echo '--------------------------------------------------------------------'
 echo 'find.............'
-rm -f  $p/Protobuf/Generated/*.g.cs
-rm -f  $p/Protobuf/Generated/*.g.gs
+rm -rf  $p/Protobuf/Generated
+rm -rf  $p/Protobuf/Generated
 echo $?
 echo '---------------------------------------------------------------------'
 
