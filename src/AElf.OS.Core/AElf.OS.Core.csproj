@@ -17,6 +17,8 @@
         <PackageReference Include="Volo.Abp.BackgroundJobs.Abstractions" Version="0.15.0"/>
     </ItemGroup>
     <Target Name="Gen_proto" BeforeTargets="BeforeBuild">
+        <Exec Condition="'$(OS)' != 'Windows_NT'" Command="bash ../../scripts/delete_cs.sh" />
+        <Exec Condition="'$(OS)' == 'Windows_NT'" Command="powershell  ../../scripts/delete_cs.ps1" />
         <Exec LogStandardErrorAsError="true" Command="protoc --proto_path=../../protobuf --csharp_out=./Network/Generated --csharp_opt=file_extension=.g.cs network_types.proto"/>
     </Target>
     <Target Name="UpdateGeneratedFiles" DependsOnTargets="Gen_proto" BeforeTargets="BeforeBuild">
