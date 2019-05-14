@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using AElf.Management.Database;
-using AElf.Management.Helper;
 using AElf.Management.Interfaces;
 using AElf.Management.Models;
 using AElf.Management.Request;
@@ -21,37 +20,6 @@ namespace AElf.Management.Services
         {
             _managementOptions = options.Value;
             _influxDatabase = influxDatabase;
-        }
-
-        public async Task<bool> IsAlive(string chainId)
-        {
-            var jsonRpcArg = new JsonRpcArg();
-            jsonRpcArg.Method = "GetDposStatus";
-
-            var state = await HttpRequestHelper.Request<JsonRpcResult<DposStateResult>>(
-                _managementOptions.ServiceUrls[chainId].RpcAddress + "/chain", jsonRpcArg);
-
-            return state.Result.IsAlive;
-        }
-
-        public async Task<bool> IsForked(string chainId)
-        {
-            var jsonRpcArg = new JsonRpcArg();
-            jsonRpcArg.Method = "GetNodeStatus";
-
-            var state = await HttpRequestHelper.Request<JsonRpcResult<NodeStateResult>>(
-                _managementOptions.ServiceUrls[chainId].RpcAddress + "/chain", jsonRpcArg);
-
-            return state.Result.IsForked;
-        }
-
-        public async Task RecordPoolState(string chainId, DateTime time)
-        {
-            var isAlive = await IsAlive(chainId);
-            var isForked = await IsForked(chainId);
-
-            var fields = new Dictionary<string, object> {{"alive", isAlive}, {"forked", isForked}};
-            await _influxDatabase.Set(chainId, "node_state", fields, null, time);
         }
 
         public async Task<List<NodeStateHistory>> GetHistoryState(string chainId)
@@ -108,14 +76,6 @@ namespace AElf.Management.Services
             }
         }
 
-        public async Task RecordInvalidBlockCount(string chainId, DateTime time)
-        {
-            var count = await GetInvalidBlockCount(chainId);
-
-            var fields = new Dictionary<string, object> {{"count", count}};
-            await _influxDatabase.Set(chainId, "block_invalid", fields, null, time);
-        }
-        
         public async Task RecordGetCurrentChainStatus(string chainId, DateTime time)
         {
             var count = await GetCurrentChainStatus(chainId);
@@ -124,74 +84,25 @@ namespace AElf.Management.Services
             await _influxDatabase.Set(chainId, "block_status", fields, null, time);
         }
 
-        public async Task RecordRollBackTimes(string chainId, DateTime time)
-        {
-            var times = await GetRollBackTimes(chainId);
-
-            var fields = new Dictionary<string, object> {{"times", times}};
-            await _influxDatabase.Set(chainId, "chain_rollback", fields, null, time);
-        }
-
-        private async Task<int> GetInvalidBlockCount(string chainId)
-        {
-            var jsonRpcArg = new JsonRpcArg();
-            jsonRpcArg.Method = "get_invalid_block";
-
-            var state = await HttpRequestHelper.Request<JsonRpcResult<InvalidBlockResult>>(
-                _managementOptions.ServiceUrls[chainId].RpcAddress + "/chain", jsonRpcArg);
-
-            return state.Result.InvalidBlockCount;
-        }
-
-        private async Task<int> GetRollBackTimes(string chainId)
-        {
-            var jsonRpcArg = new JsonRpcArg();
-            jsonRpcArg.Method = "get_rollback_times";
-
-            var state = await HttpRequestHelper.Request<JsonRpcResult<RollBackResult>>(
-                _managementOptions.ServiceUrls[chainId].RpcAddress + "/chain", jsonRpcArg);
-
-            return state.Result.RollBackTimes;
-        }
-
         private async Task<BlockInfoResult> GetBlockInfo(string chainId, long height)
         {
-            var jsonRpcArg = new JsonRpcArg<BlockInfoArg>();
-            jsonRpcArg.Method = "GetBlockInfo";
-            jsonRpcArg.Params = new BlockInfoArg
-            {
-                BlockHeight = height,
-                IncludeTxs = false
-            };
-
-            var blockInfo =
-                await HttpRequestHelper.Request<JsonRpcResult<BlockInfoResult>>(
-                    _managementOptions.ServiceUrls[chainId].RpcAddress + "/chain", jsonRpcArg);
-
+            var url = $"{_managementOptions.ServiceUrls[chainId].RpcAddress}/api/blockChain/blockByHeight" +
+                      $"?blockHeight={height}&includeTransactions=false";
+            var blockInfo = await HttpRequestHelper.Get<JsonRpcResult<BlockInfoResult>>(url);
             return blockInfo.Result;
         }
 
         private async Task<long> GetCurrentChainHeight(string chainId)
         {
-            var jsonRpcArg = new JsonRpcArg();
-            jsonRpcArg.Method = "GetBlockHeight";
-
-            var height =
-                await HttpRequestHelper.Request<JsonRpcResult<int>>(
-                    _managementOptions.ServiceUrls[chainId].RpcAddress + "/chain", jsonRpcArg);
-
+            var url = $"{_managementOptions.ServiceUrls[chainId].RpcAddress}/api/blockChain/blockHeight";
+            var height = await HttpRequestHelper.Get<JsonRpcResult<int>>(url);
             return height.Result;
         } 
          
         private async Task<ChainStatusResult> GetCurrentChainStatus(string chainId)
         {
-            var jsonRpcArg = new JsonRpcArg();
-            jsonRpcArg.Method = "GetChainStatus";
-
-            var height =
-                await HttpRequestHelper.Request<JsonRpcResult<ChainStatusResult>>(
-                    _managementOptions.ServiceUrls[chainId].RpcAddress + "/chain", jsonRpcArg);
-
+            var url = $"{_managementOptions.ServiceUrls[chainId].RpcAddress}/api/blockChain/chainStatus";
+            var height = await HttpRequestHelper.Get<JsonRpcResult<ChainStatusResult>>(url);
             return height.Result;
         }
     }

@@ -19,24 +19,6 @@ namespace AElf.Management.Website.Controllers
         }
 
         [HttpGet]
-        [Route("isalive/{chainId}")]
-        public async Task<ApiResult<bool>> IsAlive(string chainId)
-        {
-            var result = await _nodeService.IsAlive(chainId);
-
-            return new ApiResult<bool>(result);
-        }
-
-        [HttpGet]
-        [Route("isforked/{chainId}")]
-        public async Task<ApiResult<bool>> IsForked(string chainId)
-        {
-            var result = await _nodeService.IsForked(chainId);
-
-            return new ApiResult<bool>(result);
-        }
-
-        [HttpGet]
         [Route("statehistory/{chainId}")]
         public async Task<ApiResult<List<NodeStateHistory>>> StateHistory(string chainId)
         {

@@ -21,25 +21,10 @@ namespace AElf.Management.Services
             _influxDatabase = influxDatabase;
         }
 
-//        public async Task<PoolStateResult> GetPoolState(string chainId)
-//        {
-//            var jsonRpcArg = new JsonRpcArg();
-//            jsonRpcArg.Method = "get_pool_state";
-//
-//            var state = await HttpRequestHelper.Request<JsonRpcResult<PoolStateResult>>(
-//                _managementOptions.ServiceUrls[chainId].RpcAddress + "/net", jsonRpcArg);
-//
-//            return state.Result;
-//        }
-
         public async Task<PeerResult> GetPeers(string chainId)
         {
-            var jsonRpcArg = new JsonRpcArg();
-            jsonRpcArg.Method = "GetPeers";
-
-            var peers = await HttpRequestHelper.Request<JsonRpcResult<PeerResult>>(
-                _managementOptions.ServiceUrls[chainId].RpcAddress + "/net", jsonRpcArg);
-
+            var url = $"_managementOptions.ServiceUrls[chainId].RpcAddress/api/net/peers";
+            var peers = await HttpRequestHelper.Get<JsonRpcResult<PeerResult>>(url);
             return peers.Result;
         }
 

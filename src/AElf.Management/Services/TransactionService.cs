@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using AElf.Management.Database;
-using AElf.Management.Helper;
 using AElf.Management.Interfaces;
 using AElf.Management.Models;
 using AElf.Management.Request;
@@ -48,11 +47,8 @@ namespace AElf.Management.Services
 
         public async Task<int> GetPoolSize(string chainId)
         {
-            var jsonRpcArg = new JsonRpcArg {Method = "GetTransactionPoolStatus"};
-
-            var state = await HttpRequestHelper.Request<JsonRpcResult<TxPoolSizeResult>>(
-                _managementOptions.ServiceUrls[chainId].RpcAddress + "/chain", jsonRpcArg);
-
+            var url = $"{_managementOptions.ServiceUrls[chainId].RpcAddress}/api/blockChain/transactionPoolStatus";
+            var state = await HttpRequestHelper.Get<JsonRpcResult<TxPoolSizeResult>>(url);
             return state.Result.Queued;
         }
     }

@@ -18,12 +18,9 @@ namespace AElf.Management.Services
 
         public async Task<List<ActorStateResult>> GetState(string chainId)
         {
-            var jsonRpcArg = new JsonRpcArg();
-            jsonRpcArg.Method = "AkkaState";
-
-            var state = await HttpRequestHelper.Request<JsonRpcResult<List<ActorStateResult>>>(_managementOptions
-                .ServiceUrls[chainId].MonitorRpcAddress, jsonRpcArg);
-
+            // Change to get method
+            var url = $"{_managementOptions.ServiceUrls[chainId].MonitorRpcAddress}/api/akka/state";
+            var state = await HttpRequestHelper.Get<JsonRpcResult<List<ActorStateResult>>>(url);
             return state.Result;
         }
     }
