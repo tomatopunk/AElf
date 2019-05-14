@@ -24,8 +24,8 @@ namespace AElf.Management.Services
         public async Task<PeerResult> GetPeers(string chainId)
         {
             var url = $"_managementOptions.ServiceUrls[chainId].RpcAddress/api/net/peers";
-            var peers = await HttpRequestHelper.Get<JsonRpcResult<PeerResult>>(url);
-            return peers.Result;
+            var peers = await HttpRequestHelper.Get<PeerResult>(url);
+            return peers;
         }
 
         public async Task RecordPoolState(string chainId, DateTime time, int requestPoolSize, int receivePoolSize)

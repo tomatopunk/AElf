@@ -48,8 +48,8 @@ namespace AElf.Management.Services
         public async Task<int> GetPoolSize(string chainId)
         {
             var url = $"{_managementOptions.ServiceUrls[chainId].RpcAddress}/api/blockChain/transactionPoolStatus";
-            var state = await HttpRequestHelper.Get<JsonRpcResult<TxPoolSizeResult>>(url);
-            return state.Result.Queued;
+            var state = await HttpRequestHelper.Get<TxPoolSizeResult>(url);
+            return state.Queued;
         }
     }
 }

@@ -88,22 +88,20 @@ namespace AElf.Management.Services
         {
             var url = $"{_managementOptions.ServiceUrls[chainId].RpcAddress}/api/blockChain/blockByHeight" +
                       $"?blockHeight={height}&includeTransactions=false";
-            var blockInfo = await HttpRequestHelper.Get<JsonRpcResult<BlockInfoResult>>(url);
-            return blockInfo.Result;
+            var blockInfo = await HttpRequestHelper.Get<BlockInfoResult>(url);
+            return blockInfo;
         }
 
         private async Task<long> GetCurrentChainHeight(string chainId)
         {
             var url = $"{_managementOptions.ServiceUrls[chainId].RpcAddress}/api/blockChain/blockHeight";
-            var height = await HttpRequestHelper.Get<JsonRpcResult<int>>(url);
-            return height.Result;
+            return await HttpRequestHelper.Get<int>(url);;
         } 
          
         private async Task<ChainStatusResult> GetCurrentChainStatus(string chainId)
         {
             var url = $"{_managementOptions.ServiceUrls[chainId].RpcAddress}/api/blockChain/chainStatus";
-            var height = await HttpRequestHelper.Get<JsonRpcResult<ChainStatusResult>>(url);
-            return height.Result;
+            return await HttpRequestHelper.Get<ChainStatusResult>(url);;
         }
     }
 }

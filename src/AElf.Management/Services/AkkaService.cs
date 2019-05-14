@@ -20,8 +20,8 @@ namespace AElf.Management.Services
         {
             // Change to get method
             var url = $"{_managementOptions.ServiceUrls[chainId].MonitorRpcAddress}/api/akka/state";
-            var state = await HttpRequestHelper.Get<JsonRpcResult<List<ActorStateResult>>>(url);
-            return state.Result;
+            var state = await HttpRequestHelper.Get<List<ActorStateResult>>(url);
+            return state;
         }
     }
 }
