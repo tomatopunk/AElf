@@ -25,11 +25,9 @@
 
     if (aelf.isConnected()) {
         console.log("connect...");
-        var cRes = aelf.chain.getChainInformation();
+        var cRes = aelf.chain.getChainStatus();
         chain = {
-            contractZero: getContractZero(cRes),
-            // authorizationContract: getAuthorization(cRes),
-            // crossChainContract: getCrossChain(cRes)
+            contractZero: getContractZero(cRes)
         };
     }
 })();
