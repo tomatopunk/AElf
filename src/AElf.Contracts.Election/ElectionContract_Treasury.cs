@@ -205,8 +205,12 @@ namespace AElf.Contracts.Election
             State.ProfitContract.ReleaseProfit.Send(new ReleaseProfitInput
             {
                 ProfitId = State.WelfareHash.Value,
-                Period = termNumber > 1 ? termNumber - 1 : -1
+                Period = termNumber > 1 ? termNumber - 1 : -1,
+                TotalWeight = State.CachedWelfareWeight.Value
             });
+
+            State.CachedWelfareWeight.Value =
+                State.ProfitContract.GetProfitItem.Call(State.WelfareHash.Value).TotalWeight;
         }
 
         private void UpdateTreasurySubItemsWeights(long termNumber)
@@ -257,9 +261,9 @@ namespace AElf.Contracts.Election
                 var history = State.CandidateInformationMap[publicKey];
                 history.Terms.Add(termNumber - 1);
 
-                if (victories.Contains(ByteString.CopyFrom(ByteArrayHelpers.FromHexString(publicKey))))
+                if (victories.Contains(publicKey.ToByteString()))
                 {
-                    history.ContinualAppointmentCount += 1;
+                    history.ContinualAppointmentCount = history.ContinualAppointmentCount.Add(1);
                     reElectionProfitAddWeights.Weights.Add(new WeightMap
                     {
                         Receiver = address,
