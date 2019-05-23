@@ -90,8 +90,7 @@ namespace AElf.Management.Services
             var fields = new Dictionary<string, object>();
             foreach (var taskQueue  in taskQueues)
             {
-                fields.Add("name", taskQueue.Name);
-                fields.Add("size", taskQueue.Size);
+                fields.Add(taskQueue.Name, taskQueue.Size);
             }
             await _influxDatabase.WriteAsync(chainId, "task_queue_status", fields, null, DateTime.UtcNow);
         }
