@@ -49,12 +49,10 @@ namespace AElf.Management.Services
                 {
                     try
                     {
-                        _transactionService.RecordPoolSize(chainId, time);
-                        //_nodeService.RecordPoolState(chainId, time);
-                        _nodeService.RecordBlockInfo(chainId);
-                        _nodeService.RecordGetCurrentChainStatus(chainId, time);
-                        //_nodeService.RecordInvalidBlockCount(chainId, time);
-                        //_nodeService.RecordRollBackTimes(chainId, time);
+                        _transactionService.RecordTransactionPoolStatus(chainId);
+                        _nodeService.RecordBlockInfoAsync(chainId);
+                        _nodeService.RecordGetCurrentChainStatusAsync(chainId);
+                        _nodeService.RecordTaskQueueStatusAsync(chainId);
                     }
                     catch (Exception ex)
                     {

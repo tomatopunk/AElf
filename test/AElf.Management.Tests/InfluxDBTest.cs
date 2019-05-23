@@ -23,24 +23,24 @@ namespace AElf.Management.Tests
         public async Task TestSetAndGet()
         {
             var database = "unittest";
-            await _influxDatabase.CreateDatabase(database);
+            await _influxDatabase.CreateDatabaseAsync(database);
 
             var used = 50;
             var time = DateTime.Now;
-            await _influxDatabase.Set(database, "cpu", new Dictionary<string, object> {{"used", used}}, null, time);
+            await _influxDatabase.WriteAsync(database, "cpu", new Dictionary<string, object> {{"used", used}}, null, time);
             Thread.Sleep(1000);
-            var result = await _influxDatabase.Get(database, "select * from cpu");
+            var result = await _influxDatabase.QueryAsync(database, "select * from cpu");
 
             Assert.True(Convert.ToInt32(result[0].Values[0][1]) == used);
 
-            await _influxDatabase.DropDatabase(database);
+            await _influxDatabase.DropDatabaseAsync(database);
         }
 
         [Fact(Skip = "require InfluxDB")]
         // [Fact]
         public async Task TestVerison()
         {
-            var version = await _influxDatabase.Version();
+            var version = await _influxDatabase.GetVersionAsync();
             Assert.NotNull(version);
         }
     }

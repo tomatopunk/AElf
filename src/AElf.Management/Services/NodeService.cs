@@ -22,10 +22,10 @@ namespace AElf.Management.Services
             _influxDatabase = influxDatabase;
         }
 
-        public async Task<List<NodeStateHistory>> GetHistoryState(string chainId)
+        public async Task<List<NodeStateHistory>> GetHistoryStateAsync(string chainId)
         {
             var result = new List<NodeStateHistory>();
-            var record = await _influxDatabase.Get(chainId, "select * from node_state");
+            var record = await _influxDatabase.QueryAsync(chainId, "select * from node_state");
             foreach (var item in record.First().Values)
             {
                 result.Add(new NodeStateHistory
@@ -39,10 +39,10 @@ namespace AElf.Management.Services
             return result;
         }
 
-        public async Task RecordBlockInfo(string chainId)
+        public async Task RecordBlockInfoAsync(string chainId)
         {
             long currentHeight;
-            var currentRecord = await _influxDatabase.Get(chainId, "select last(height) from block_info");
+            var currentRecord = await _influxDatabase.QueryAsync(chainId, "select last(height) from block_info");
             if (currentRecord.Count == 0)
             {
                 currentHeight = await GetCurrentChainHeight(chainId);
@@ -67,7 +67,7 @@ namespace AElf.Management.Services
             {
                 var fields = new Dictionary<string, object>
                     {{"height", currentHeight}, {"tx_count", blockInfo.Body.TransactionsCount}};
-                await _influxDatabase.Set(chainId, "block_info", fields, null, blockInfo.Header.Time);
+                await _influxDatabase.WriteAsync(chainId, "block_info", fields, null, blockInfo.Header.Time);
 
                 Thread.Sleep(1000);
 
@@ -76,12 +76,31 @@ namespace AElf.Management.Services
             }
         }
 
-        public async Task RecordGetCurrentChainStatus(string chainId, DateTime time)
+        public async Task RecordGetCurrentChainStatusAsync(string chainId)
         {
             var count = await GetCurrentChainStatus(chainId);
 
             var fields = new Dictionary<string, object> {{"LastIrrever", count.LastIrreversibleBlockHeight},{"Longest", count.LongestChainHeight},{"Best", count.BestChainHeight}};
-            await _influxDatabase.Set(chainId, "block_status", fields, null, time);
+            await _influxDatabase.WriteAsync(chainId, "block_status", fields, null, DateTime.UtcNow);
+        }
+
+        public async Task RecordTaskQueueStatusAsync(string chainId)
+        {
+            var taskQueues = await GetTaskQueueStateAsync(chainId);
+            var fields = new Dictionary<string, object>();
+            foreach (var taskQueue  in taskQueues)
+            {
+                fields.Add("name", taskQueue.Name);
+                fields.Add("size", taskQueue.Size);
+            }
+            await _influxDatabase.WriteAsync(chainId, "task_queue_status", fields, null, DateTime.UtcNow);
+        }
+
+        private async Task<List<TaskQueueStatus>> GetTaskQueueStateAsync(string chainId)
+        {
+            var url = $"{_managementOptions.ServiceUrls[chainId].RpcAddress}/api/blockChain/taskQueueStatus";
+            var taskQueueStatus = await HttpRequestHelper.Get<List<TaskQueueStatus>>(url);
+            return taskQueueStatus;
         }
 
         private async Task<BlockInfoResult> GetBlockInfo(string chainId, long height)

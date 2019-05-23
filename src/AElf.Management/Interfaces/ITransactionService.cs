@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using AElf.Management.Models;
 
@@ -9,7 +8,7 @@ namespace AElf.Management.Interfaces
     {
         Task<int> GetPoolSize(string chainId);
 
-        Task RecordPoolSize(string chainId, DateTime timee);
+        Task RecordTransactionPoolStatus(string chainId);
 
         Task<List<PoolSizeHistory>> GetPoolSizeHistory(string chainId);
     }

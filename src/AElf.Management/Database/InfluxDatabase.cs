@@ -20,7 +20,7 @@ namespace AElf.Management.Database
                 InfluxDbVersion.Latest);
         }
 
-        public async Task Set(string database, string measurement, Dictionary<string, object> fields,
+        public async Task WriteAsync(string database, string measurement, Dictionary<string, object> fields,
             Dictionary<string, object> tags, DateTime timestamp)
         {
             var point = new Point
@@ -37,24 +37,24 @@ namespace AElf.Management.Database
             await InfluxDb.Client.WriteAsync(point, database);
         }
 
-        public async Task<List<Serie>> Get(string database, string query)
+        public async Task<List<Serie>> QueryAsync(string database, string query)
         {
             var series = await InfluxDb.Client.QueryAsync(query, database);
             return series.ToList();
         }
 
-        public async Task<string> Version()
+        public async Task<string> GetVersionAsync()
         {
             var pong = await InfluxDb.Diagnostics.PingAsync();
             return pong.Version;
         }
 
-        public async Task CreateDatabase(string database)
+        public async Task CreateDatabaseAsync(string database)
         {
             await InfluxDb.Database.CreateDatabaseAsync(database);
         }
 
-        public async Task DropDatabase(string database)
+        public async Task DropDatabaseAsync(string database)
         {
             await InfluxDb.Database.DropDatabaseAsync(database);
         }

@@ -7,15 +7,15 @@ namespace AElf.Management.Database
 {
     public interface IInfluxDatabase
     {
-        Task Set(string database, string measurement, Dictionary<string, object> fields,
+        Task WriteAsync(string database, string measurement, Dictionary<string, object> fields,
             Dictionary<string, object> tags, DateTime timestamp);
 
-        Task<List<Serie>> Get(string database, string query);
+        Task<List<Serie>> QueryAsync(string database, string query);
 
-        Task<string> Version();
+        Task<string> GetVersionAsync();
 
-        Task CreateDatabase(string database);
+        Task CreateDatabaseAsync(string database);
 
-        Task DropDatabase(string database);
+        Task DropDatabaseAsync(string database);
     }
 }

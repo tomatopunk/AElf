@@ -21,18 +21,18 @@ namespace AElf.Management.Services
             _influxDatabase = influxDatabase;
         }
 
-        public async Task RecordPoolSize(string chainId, DateTime time)
+        public async Task RecordTransactionPoolStatus(string chainId)
         {
             var poolSize = await GetPoolSize(chainId);
 
             var fields = new Dictionary<string, object> {{"size", poolSize}};
-            await _influxDatabase.Set(chainId, "transaction_pool_size", fields, null, time);
+            await _influxDatabase.WriteAsync(chainId, "transaction_pool_size", fields, null, DateTime.UtcNow);
         }
 
         public async Task<List<PoolSizeHistory>> GetPoolSizeHistory(string chainId)
         {
             var result = new List<PoolSizeHistory>();
-            var record = await _influxDatabase.Get(chainId, "select * from transaction_pool_size");
+            var record = await _influxDatabase.QueryAsync(chainId, "select * from transaction_pool_size");
             foreach (var item in record.First().Values)
             {
                 result.Add(new PoolSizeHistory

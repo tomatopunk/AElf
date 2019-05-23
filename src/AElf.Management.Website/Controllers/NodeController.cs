@@ -22,7 +22,7 @@ namespace AElf.Management.Website.Controllers
         [Route("statehistory/{chainId}")]
         public async Task<ApiResult<List<NodeStateHistory>>> StateHistory(string chainId)
         {
-            var result = await _nodeService.GetHistoryState(chainId);
+            var result = await _nodeService.GetHistoryStateAsync(chainId);
 
             return new ApiResult<List<NodeStateHistory>>(result);
         }
