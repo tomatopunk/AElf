@@ -41,38 +41,35 @@ namespace AElf.Management.Services
 
         public async Task RecordBlockInfoAsync(string chainId)
         {
-            long currentHeight;
+            var currentHeight = await GetCurrentChainHeight(chainId);
+            var recordHeight = currentHeight;
             var currentRecord = await _influxDatabase.QueryAsync(chainId, "select last(height) from block_info");
-            if (currentRecord.Count == 0)
-            {
-                currentHeight = await GetCurrentChainHeight(chainId);
-            }
-            else
+            if (currentRecord.Count != 0)
             {
                 var record = currentRecord.First().Values.First();
                 var time = Convert.ToDateTime(record[0]);
 
-                if (time < DateTime.Now.AddHours(-1))
+                if (time > DateTime.Now.AddHours(-1))
                 {
-                    currentHeight = await GetCurrentChainHeight(chainId);
-                }
-                else
-                {
-                    currentHeight = Convert.ToInt64(record[1]) + 1;
+                    var lastRecordHeight = Convert.ToInt64(record[1]);
+                    if (lastRecordHeight < currentHeight)
+                    {
+                        recordHeight = lastRecordHeight + 1;
+                    }
                 }
             }
 
-            var blockInfo = await GetBlockInfo(chainId, currentHeight);
-            while (blockInfo != null && blockInfo.Body != null && blockInfo.Header != null)
+            while (recordHeight <= currentHeight)
             {
-                var fields = new Dictionary<string, object>
-                    {{"height", currentHeight}, {"tx_count", blockInfo.Body.TransactionsCount}};
-                await _influxDatabase.WriteAsync(chainId, "block_info", fields, null, blockInfo.Header.Time);
+                var blockInfo = await GetBlockInfo(chainId, recordHeight);
+                if(blockInfo != null && blockInfo.Body != null && blockInfo.Header != null)
+                {
+                    var fields = new Dictionary<string, object>
+                        {{"height", currentHeight}, {"tx_count", blockInfo.Body.TransactionsCount}};
+                    await _influxDatabase.WriteAsync(chainId, "block_info", fields, null, blockInfo.Header.Time);
+                }
 
-                Thread.Sleep(1000);
-
-                currentHeight++;
-                blockInfo = await GetBlockInfo(chainId, currentHeight);
+                recordHeight++;
             }
         }
 
@@ -113,13 +110,13 @@ namespace AElf.Management.Services
         private async Task<long> GetCurrentChainHeight(string chainId)
         {
             var url = $"{_managementOptions.ServiceUrls[chainId].RpcAddress}/api/blockChain/blockHeight";
-            return await HttpRequestHelper.Get<int>(url);;
+            return await HttpRequestHelper.Get<int>(url);
         } 
          
         private async Task<ChainStatusResult> GetCurrentChainStatus(string chainId)
         {
             var url = $"{_managementOptions.ServiceUrls[chainId].RpcAddress}/api/blockChain/chainStatus";
-            return await HttpRequestHelper.Get<ChainStatusResult>(url);;
+            return await HttpRequestHelper.Get<ChainStatusResult>(url);
         }
     }
 }
