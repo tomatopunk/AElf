@@ -7,6 +7,8 @@ namespace AElf.Management
         public string DeployType { get; set; }
         public int MonitoringInterval { get; set; }
         public Dictionary<string, ServiceUrl> ServiceUrls { get; set; }
+
+        public Dictionary<string, string> PublicKeys { get; set; }
     }
     
     public class ServiceUrl

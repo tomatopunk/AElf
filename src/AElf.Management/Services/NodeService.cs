@@ -92,6 +92,37 @@ namespace AElf.Management.Services
             await _influxDatabase.WriteAsync(chainId, "task_queue_status", fields, null, DateTime.UtcNow);
         }
 
+        public async Task RecordCurrentRoundInformation(string chainId)
+        {
+            var roundInfo = await GetCurrentRoundInformation(chainId);
+            var currentMinerRoundInfo = roundInfo.RealTimeMinerInformation[_managementOptions.PublicKeys[chainId]];
+
+            var fields = new Dictionary<string, object>
+            {
+                {"public_key", _managementOptions.PublicKeys[chainId].Substring(0, 10)},
+                {"round_id", roundInfo.RoundId},
+                {"expected_mining_time", currentMinerRoundInfo.ExpectedMiningTime}
+            };
+
+            var miningCount = currentMinerRoundInfo.ActualMiningTimes.Count;
+            for (var i = 0; i < 8; i++)
+            {
+                var columnNum = i + 1;
+                if (i < miningCount)
+                {
+                    fields.Add("actual_mining_times_" + columnNum,
+                        currentMinerRoundInfo.ActualMiningTimes[i].ToUniversalTime()
+                            .ToString("yyyy-MM-dd HH.mm.ss,ffffff"));
+                }
+                else
+                {
+                    fields.Add("actual_mining_times_" + columnNum, "");
+                }
+            }
+
+            await _influxDatabase.WriteAsync(chainId, "miner_info", fields, null, DateTime.UtcNow);
+        }
+
         private async Task<List<TaskQueueStatus>> GetTaskQueueStateAsync(string chainId)
         {
             var url = $"{_managementOptions.ServiceUrls[chainId].RpcAddress}/api/blockChain/taskQueueStatus";
@@ -117,6 +148,12 @@ namespace AElf.Management.Services
         {
             var url = $"{_managementOptions.ServiceUrls[chainId].RpcAddress}/api/blockChain/chainStatus";
             return await HttpRequestHelper.Get<ChainStatusResult>(url);
+        }
+
+        private async Task<CurrentRoundInformationResult> GetCurrentRoundInformation(string chainId)
+        {
+            var url = $"{_managementOptions.ServiceUrls[chainId].RpcAddress}/api/blockChain/CurrentRoundInformation";
+            return await HttpRequestHelper.Get<CurrentRoundInformationResult>(url);
         }
     }
 }

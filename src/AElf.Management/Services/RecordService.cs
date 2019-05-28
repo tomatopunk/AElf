@@ -44,7 +44,6 @@ namespace AElf.Management.Services
 
         private void TimerOnElapsed(object sender, ElapsedEventArgs e)
         {
-            var time = DateTime.Now;
             Parallel.ForEach(_managementOptions.ServiceUrls.Keys, chainId =>
                 {
                     try
@@ -53,6 +52,7 @@ namespace AElf.Management.Services
                         _nodeService.RecordBlockInfoAsync(chainId);
                         _nodeService.RecordGetCurrentChainStatusAsync(chainId);
                         _nodeService.RecordTaskQueueStatusAsync(chainId);
+                        _nodeService.RecordCurrentRoundInformation(chainId);
                     }
                     catch (Exception ex)
                     {

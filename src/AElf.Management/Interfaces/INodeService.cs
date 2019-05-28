@@ -13,5 +13,7 @@ namespace AElf.Management.Interfaces
         Task RecordGetCurrentChainStatusAsync(string chainId);
 
         Task RecordTaskQueueStatusAsync(string chainId);
+
+        Task RecordCurrentRoundInformation(string chainId);
     }
 }
