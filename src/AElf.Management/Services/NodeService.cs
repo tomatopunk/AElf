@@ -101,7 +101,10 @@ namespace AElf.Management.Services
             {
                 {"public_key", _managementOptions.PublicKeys[chainId].Substring(0, 10)},
                 {"round_id", roundInfo.RoundId},
-                {"expected_mining_time", currentMinerRoundInfo.ExpectedMiningTime}
+                {
+                    "expected_mining_time",
+                    currentMinerRoundInfo.ExpectedMiningTime.ToUniversalTime().ToString("yyyy-MM-dd HH.mm.ss,ffffff")
+                }
             };
 
             var miningCount = currentMinerRoundInfo.ActualMiningTimes.Count;
