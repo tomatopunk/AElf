@@ -108,7 +108,7 @@ namespace AElf.Management.Services
             };
 
             var miningCount = currentMinerRoundInfo.ActualMiningTimes.Count;
-            for (var i = 0; i < 8; i++)
+            for (var i = 0; i < 16; i++)
             {
                 var columnNum = i + 1;
                 if (i < miningCount)
@@ -119,7 +119,7 @@ namespace AElf.Management.Services
                 }
                 else
                 {
-                    fields.Add("actual_mining_times_" + columnNum, "");
+                    fields.Add("actual_mining_times_" + columnNum, string.Empty);
                 }
             }
 
