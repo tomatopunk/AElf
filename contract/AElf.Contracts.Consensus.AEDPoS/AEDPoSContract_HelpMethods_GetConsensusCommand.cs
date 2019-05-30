@@ -331,7 +331,8 @@ namespace AElf.Contracts.Consensus.AEDPoS
                    expectedMiningTime + new Duration {Seconds = miningInterval.Div(1000)})
             {
                 var toPrint = expectedMiningTime.Clone();
-                Context.LogDebug(() => $"Moving to next tiny block time slot. {toPrint}");
+                Context.LogDebug(() =>
+                    $"Moving to next tiny block time slot. {toPrint}. Current mining interval: {miningInterval}");
                 expectedMiningTime = expectedMiningTime + step;
             }
         }

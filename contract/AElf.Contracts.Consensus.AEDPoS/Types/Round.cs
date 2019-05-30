@@ -79,9 +79,8 @@ namespace AElf.Contracts.Consensus.AEDPoS
             var firstTwoMiners = RealTimeMinersInformation.Values.Where(m => m.Order == 1 || m.Order == 2)
                 .ToList();
             var distance =
-                (int) (firstTwoMiners[1].ExpectedMiningTime.ToDateTime() -
-                       firstTwoMiners[0].ExpectedMiningTime.ToDateTime())
-                .TotalMilliseconds;
+                (int) (firstTwoMiners[1].ExpectedMiningTime -
+                       firstTwoMiners[0].ExpectedMiningTime).Seconds.Mul(1000);
             return distance > 0 ? distance : -distance;
         }
 
