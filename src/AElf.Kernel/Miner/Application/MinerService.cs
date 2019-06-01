@@ -162,7 +162,7 @@ namespace AElf.Kernel.Miner.Application
                 var pending = transactions;
 
                 cts.CancelAfter((int) requestMiningDto.BlockExecutionTime.Milliseconds());
-                Logger.LogDebug($"Mining test: Begin execute block. {requestMiningDto.BlockExecutionTime.Milliseconds}");
+                Logger.LogDebug($"Mining test: Begin execute block. {requestMiningDto.BlockExecutionTime.Milliseconds()}");
                 block = await _blockExecutingService.ExecuteBlockAsync(block.Header,
                     systemTransactions, pending, cts.Token);
                 Logger.LogDebug("Mining test: Begin sign block");
