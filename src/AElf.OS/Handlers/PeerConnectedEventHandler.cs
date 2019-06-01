@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
+using AElf.Common;
 using AElf.Kernel;
 using AElf.Kernel.Blockchain.Application;
 using AElf.OS.BlockSync.Application;
@@ -68,11 +69,6 @@ namespace AElf.OS.Handlers
                 return;
             }
             
-            if (!VerifyAnnouncement(header.Announce))
-            {
-                return;
-            }
-            
             var chain = await _blockchainService.GetChainAsync();
             if (header.Announce.BlockHeight < chain.LastIrreversibleBlockHeight)
             {
@@ -100,18 +96,6 @@ namespace AElf.OS.Handlers
                     _blockSyncService.SetBlockSyncAnnouncementEnqueueTime(null);
                 }
             }, OSConsts.BlockSyncQueueName);
-        }
-        
-        private bool VerifyAnnouncement(PeerNewBlockAnnouncement announcement)
-        {
-            var allowedFutureBlockTime = DateTime.UtcNow + KernelConstants.AllowedFutureBlockTimeSpan;
-            if (allowedFutureBlockTime < announcement.BlockTime.ToDateTime())
-            {
-                Logger.LogWarning($"Receive future block {announcement}");
-                return false;
-            }
-
-            return true;
-        }
+        }        
     }
 }

@@ -35,6 +35,10 @@ namespace AElf.OS.Network.Grpc
         public IReadOnlyDictionary<long, Hash> RecentBlockHeightAndHashMappings { get; }
 
         private readonly ConcurrentDictionary<long, Hash> _recentBlockHeightAndHashMappings;
+        
+        public IReadOnlyDictionary<long, Hash> PreLibBlockHeightAndHashMappings { get; }
+        
+        private readonly ConcurrentDictionary<long, Hash> _preLibBlockHeightAndHashMappings;
 
         public ILogger<GrpcPeerPool> Logger { get; set; }
 
@@ -48,6 +52,8 @@ namespace AElf.OS.Network.Grpc
             _authenticatedPeers = new ConcurrentDictionary<string, GrpcPeer>();
             _recentBlockHeightAndHashMappings = new ConcurrentDictionary<long, Hash>();
             RecentBlockHeightAndHashMappings = new ReadOnlyDictionary<long, Hash>(_recentBlockHeightAndHashMappings);
+            _preLibBlockHeightAndHashMappings = new ConcurrentDictionary<long, Hash>();
+            PreLibBlockHeightAndHashMappings = new ReadOnlyDictionary<long, Hash>(_preLibBlockHeightAndHashMappings);
 
             Logger = NullLogger<GrpcPeerPool>.Instance;
         }
@@ -66,21 +72,17 @@ namespace AElf.OS.Network.Grpc
 
             Channel channel = new Channel(ipAddress, ChannelCredentials.Insecure, new List<ChannelOption>
             {
-                new ChannelOption(ChannelOptions.MaxSendMessageLength, GrpcConsts.DefaultMaxSendMessageLength),
-                new ChannelOption(ChannelOptions.MaxReceiveMessageLength, GrpcConsts.DefaultMaxReceiveMessageLength)
+                new ChannelOption(ChannelOptions.MaxSendMessageLength, GrpcConstants.DefaultMaxSendMessageLength),
+                new ChannelOption(ChannelOptions.MaxReceiveMessageLength, GrpcConstants.DefaultMaxReceiveMessageLength)
             });
             
-            var interceptor = new RetryInterceptor();
-            interceptor.Logger = Logger;
-            interceptor.PeerIp = ipAddress;
-
             var client = new PeerService.PeerServiceClient(channel
                 .Intercept(metadata =>
                     {
-                        metadata.Add(GrpcConsts.PubkeyMetadataKey, AsyncHelper.RunSync(() => _accountService.GetPublicKeyAsync()).ToHex());
+                        metadata.Add(GrpcConstants.PubkeyMetadataKey, AsyncHelper.RunSync(() => _accountService.GetPublicKeyAsync()).ToHex());
                         return metadata;
                     })
-                .Intercept(interceptor));
+                .Intercept(new RetryInterceptor()));
             
             var hsk = await BuildHandshakeAsync();
 
@@ -97,7 +99,7 @@ namespace AElf.OS.Network.Grpc
             {
                 Metadata data = new Metadata
                 {
-                    {GrpcConsts.TimeoutMetadataKey, _networkOptions.PeerDialTimeoutInMilliSeconds.ToString()}
+                    {GrpcConstants.TimeoutMetadataKey, _networkOptions.PeerDialTimeoutInMilliSeconds.ToString()}
                 };
                 connectReply = await client.ConnectAsync(hsk, data);
             }
@@ -118,9 +120,18 @@ namespace AElf.OS.Network.Grpc
             }
 
             var pubKey = connectReply.Handshake.HskData.PublicKey.ToHex();
+            
+            var connectionInfo = new GrpcPeerInfo
+            {
+                PublicKey = pubKey,
+                PeerIpAddress = ipAddress,
+                ProtocolVersion = connectReply.Handshake.HskData.Version,
+                ConnectionTime = TimestampHelper.GetUtcNow().Seconds,
+                StartHeight = connectReply.Handshake.Header.Height,
+                IsInbound = false
+            };
 
-            var peer = new GrpcPeer(channel, client, pubKey, ipAddress, connectReply.Handshake.HskData.Version,
-                DateTime.UtcNow.ToTimestamp().Seconds, connectReply.Handshake.Header.Height, false);
+            var peer = new GrpcPeer(channel, client, connectionInfo);
 
             if (!_authenticatedPeers.TryAdd(pubKey, peer))
             {
@@ -136,8 +147,7 @@ namespace AElf.OS.Network.Grpc
             _ = EventBus.PublishAsync(new AnnouncementReceivedEventData(new PeerNewBlockAnnouncement
             {
                 BlockHash = connectReply.Handshake.Header.GetHash(),
-                BlockHeight = connectReply.Handshake.Header.Height,
-                BlockTime = connectReply.Handshake.Header.Time
+                BlockHeight = connectReply.Handshake.Header.Height
             }, pubKey));
 
             return true;
@@ -272,7 +282,7 @@ namespace AElf.OS.Network.Grpc
             return removed;
         }
         
-        public void AddRecentBlockHeightAndHash(long blockHeight,Hash blockHash,bool hasFork)
+        public void AddRecentBlockHeightAndHash(long blockHeight,Hash blockHash, bool hasFork)
         {
             if (hasFork)
             {
@@ -283,6 +293,15 @@ namespace AElf.OS.Network.Grpc
             while (_recentBlockHeightAndHashMappings.Count > 10)
             {
                 _recentBlockHeightAndHashMappings.TryRemove(_recentBlockHeightAndHashMappings.Keys.Min(), out _);
+            }
+        }
+        
+        public void AddPreLibBlockHeightAndHash(long blockHeight,Hash blockHash)
+        {
+            _preLibBlockHeightAndHashMappings[blockHeight] = blockHash;
+            while (_preLibBlockHeightAndHashMappings.Count > 10)
+            {
+                _preLibBlockHeightAndHashMappings.TryRemove(_preLibBlockHeightAndHashMappings.Keys.Min(), out _);
             }
         }
     }

@@ -54,7 +54,6 @@ namespace AElf.OS.Network.Application
             {
                 BlockHash = blockHeader.GetHash(),
                 BlockHeight = blockHeader.Height,
-                BlockTime = blockHeader.Time,
                 HasFork = hasFork
             };
             
@@ -78,6 +77,36 @@ namespace AElf.OS.Network.Application
             return successfulBcasts;
         }
 
+        public async Task<int> BroadcastPreLibAnnounceAsync(long blockHeight, Hash blockHash)
+        {
+            int successfulBcasts = 0;
+
+            var announce = new PeerPreLibAnnouncement
+            {
+                BlockHash = blockHash,
+                BlockHeight = blockHeight
+            };
+
+            var peers = _peerPool.GetPeers().ToList();
+
+            _peerPool.AddPreLibBlockHeightAndHash(announce.BlockHeight, announce.BlockHash);
+
+            Logger.LogDebug("About to broadcast pre lib to peers.");
+
+            var tasks = peers.Select(peer => DoPreLibAnnounce(peer, announce)).ToList();
+            await Task.WhenAll(tasks);
+
+            foreach (var finishedTask in tasks.Where(t => t.IsCompleted))
+            {
+                if (finishedTask.Result)
+                    successfulBcasts++;
+            }
+
+            Logger.LogDebug("Broadcast pre lib successful !");
+
+            return successfulBcasts;
+        }
+
         private async Task<bool> DoAnnounce(IPeer peer, PeerNewBlockAnnouncement announce)
         {
             try
@@ -85,6 +114,24 @@ namespace AElf.OS.Network.Application
                 Logger.LogDebug($"Before broadcast {announce.BlockHash} to {peer}.");
                 await peer.AnnounceAsync(announce);
                 Logger.LogDebug($"After broadcast {announce.BlockHash} to {peer}.");
+
+                return true;
+            }
+            catch (NetworkException e)
+            {
+                Logger.LogError(e, "Error while sending block.");
+            }
+
+            return false;
+        }
+        
+        private async Task<bool> DoPreLibAnnounce(IPeer peer, PeerPreLibAnnouncement announce)
+        {
+            try
+            {
+                Logger.LogDebug($"Before broadcast pre lib {announce.BlockHash} to {peer}.");
+                await peer.PreLibAnnounceAsync(announce);
+                Logger.LogDebug($"After broadcast pre lib {announce.BlockHash} to {peer}.");
 
                 return true;
             }
@@ -158,7 +205,7 @@ namespace AElf.OS.Network.Application
             List<IPeer> randomPeers = _peerPool.GetPeers()
                 .Where(p => p.PubKey != peerPubKey && (bestPeer == null || p.PubKey != bestPeer.PubKey))
                 .OrderBy(x => rnd.Next())
-                .Take(NetworkConsts.DefaultMaxPeersPerRequest - peers.Count)
+                .Take(NetworkConstants.DefaultMaxRandomPeersPerRequest)
                 .ToList();
             
             peers.AddRange(randomPeers);
@@ -171,19 +218,9 @@ namespace AElf.OS.Network.Application
         public async Task<BlockWithTransactions> GetBlockByHashAsync(Hash hash, string peer = null)
         {
             Logger.LogDebug($"Getting block by hash, hash: {hash} from {peer}.");
-            return await GetBlockAsync(hash, peer);
-        }
-
-        private async Task<BlockWithTransactions> GetBlockAsync(Hash hash, string peer = null)
-        {
+            
             var peers = SelectPeers(peer);
-            var block = await RequestBlockToAsync(hash, peers, peer);
-            return block;
-        }
-        
-        private async Task<BlockWithTransactions> RequestBlockToAsync(Hash hash, List<IPeer> peers, string suggested)
-        {
-            return await RequestAsync(peers, p => p.RequestBlockAsync(hash), (blockWithTransactions) => blockWithTransactions != null, suggested);
+            return await RequestAsync(peers, p => p.RequestBlockAsync(hash), blockWithTransactions => blockWithTransactions != null, peer);
         }
 
         private async Task<(IPeer, T)> DoRequest<T>(IPeer peer, Func<IPeer, Task<T>> func) where T : class
@@ -207,6 +244,12 @@ namespace AElf.OS.Network.Application
         private async Task<T> RequestAsync<T>(List<IPeer> peers, Func<IPeer, Task<T>> func,
             Predicate<T> validationFunc, string suggested) where T : class
         {
+            if (peers.Count <= 0)
+            {
+                Logger.LogWarning("Peer list is empty.");
+                return null;
+            }
+            
             var taskList = peers.Select(peer => DoRequest(peer, func)).ToList();
             
             Task<(IPeer, T)> finished = null;

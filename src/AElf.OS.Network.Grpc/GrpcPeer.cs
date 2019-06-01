@@ -5,9 +5,11 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using AElf.Kernel;
 using AElf.OS.Network.Application;
 using AElf.OS.Network.Infrastructure;
 using AElf.Types;
+using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 
 namespace AElf.OS.Network.Grpc
@@ -15,16 +17,18 @@ namespace AElf.OS.Network.Grpc
     public class GrpcPeer : IPeer
     {
         private const int MaxMetricsPerMethod = 100;
+        
         private const int AnnouncementTimeout = 300;
         private const int BlockRequestTimeout = 300;
-        private const int TransactionBroadCastTimeout = 300;
+        private const int TransactionBroadcastTimeout = 300;
         private const int BlocksRequestTimeout = 500;
         
         private enum MetricNames
         {
             Announce,
             GetBlocks,
-            GetBlock
+            GetBlock,
+            PreLibAnnounce
         };
         
         public event EventHandler DisconnectionEvent;
@@ -43,34 +47,40 @@ namespace AElf.OS.Network.Grpc
         public bool IsBest { get; set; }
         public Hash CurrentBlockHash { get; private set; }
         public long CurrentBlockHeight { get; private set; }
+        
         public string PeerIpAddress { get; }
         public string PubKey { get; }
-        public int ProtocolVersion { get; set; }
-        public long ConnectionTime { get; set; }
-        public bool Inbound { get; set; }
-        public long StartHeight { get; set; }
+        public int ProtocolVersion { get; }
+        public long ConnectionTime { get; }
+        public bool Inbound { get; }
+        public long StartHeight { get; }
 
         public IReadOnlyDictionary<long, Hash> RecentBlockHeightAndHashMappings { get; }
         private readonly ConcurrentDictionary<long, Hash> _recentBlockHeightAndHashMappings;
         
+        public IReadOnlyDictionary<long, Hash> PreLibBlockHeightAndHashMappings { get; }
+        private readonly ConcurrentDictionary<long, Hash> _preLibBlockHeightAndHashMappings;
+        
         public IReadOnlyDictionary<string, ConcurrentQueue<RequestMetric>> RecentRequestsRoundtripTime { get; }
         private readonly ConcurrentDictionary<string, ConcurrentQueue<RequestMetric>> _recentRequestsRoundtripTimes;
 
-        public GrpcPeer(Channel channel, PeerService.PeerServiceClient client, string pubKey, string peerIpAddress,
-            int protocolVersion, long connectionTime, long startHeight, bool inbound = true)
+        public GrpcPeer(Channel channel, PeerService.PeerServiceClient client, GrpcPeerInfo peerInfo)
         {
             _channel = channel;
             _client = client;
 
-            PeerIpAddress = peerIpAddress;
-            PubKey = pubKey;
-            ProtocolVersion = protocolVersion;
-            ConnectionTime = connectionTime;
-            Inbound = inbound;
-            StartHeight = startHeight;
+            PeerIpAddress = peerInfo.PeerIpAddress;
+            PubKey = peerInfo.PublicKey;
+            ProtocolVersion = peerInfo.ProtocolVersion;
+            ConnectionTime = peerInfo.ConnectionTime;
+            Inbound = peerInfo.IsInbound;
+            StartHeight = peerInfo.StartHeight;
 
             _recentBlockHeightAndHashMappings = new ConcurrentDictionary<long, Hash>();
             RecentBlockHeightAndHashMappings = new ReadOnlyDictionary<long, Hash>(_recentBlockHeightAndHashMappings);
+            
+            _preLibBlockHeightAndHashMappings = new ConcurrentDictionary<long, Hash>();
+            PreLibBlockHeightAndHashMappings = new ReadOnlyDictionary<long, Hash>(_preLibBlockHeightAndHashMappings);
             
             _recentRequestsRoundtripTimes = new ConcurrentDictionary<string, ConcurrentQueue<RequestMetric>>();
             RecentRequestsRoundtripTime = new ReadOnlyDictionary<string, ConcurrentQueue<RequestMetric>>(_recentRequestsRoundtripTimes);
@@ -106,15 +116,10 @@ namespace AElf.OS.Network.Grpc
             {
                 ErrorMessage = $"Block request for {hash} failed.",
                 MetricName = nameof(MetricNames.GetBlock),
-                MetricInfo = $"Block request for {hash}",
-                Timeout = 300
+                MetricInfo = $"Block request for {hash}"
             };
 
-            Metadata data = new Metadata
-            {
-                {GrpcConsts.MetricInfoMetadataKey, request.MetricInfo},
-                {GrpcConsts.TimeoutMetadataKey, BlockRequestTimeout.ToString()}
-            };
+            Metadata data = new Metadata { {GrpcConstants.TimeoutMetadataKey, BlockRequestTimeout.ToString()} };
 
             var blockReply 
                 = await RequestAsync(_client, c => c.RequestBlockAsync(blockRequest, data), request);
@@ -131,15 +136,10 @@ namespace AElf.OS.Network.Grpc
             {
                 ErrorMessage = $"Get blocks for {blockInfo} failed.",
                 MetricName = nameof(MetricNames.GetBlocks),
-                MetricInfo = $"Get blocks for {blockInfo}",
-                Timeout = 500
+                MetricInfo = $"Get blocks for {blockInfo}"
             };
 
-            Metadata data = new Metadata
-            {
-                {GrpcConsts.MetricInfoMetadataKey, request.MetricInfo},
-                {GrpcConsts.TimeoutMetadataKey, BlocksRequestTimeout.ToString()}
-            };
+            Metadata data = new Metadata { {GrpcConstants.TimeoutMetadataKey, BlocksRequestTimeout.ToString()} };
 
             var list = await RequestAsync(_client, c => c.RequestBlocksAsync(blockRequest, data), request);
 
@@ -153,32 +153,42 @@ namespace AElf.OS.Network.Grpc
         {
             GrpcRequest request = new GrpcRequest
             {
-                ErrorMessage = $"Bcast announce for {header.BlockHash} failed.",
+                ErrorMessage = $"Broadcast announce for {header.BlockHash} failed.",
                 MetricName = nameof(MetricNames.Announce),
-                MetricInfo = $"Block hash {header.BlockHash}", 
-                Timeout = 300
+                MetricInfo = $"Block hash {header.BlockHash}"
             };
 
-            Metadata data = new Metadata
-            {
-                {GrpcConsts.MetricInfoMetadataKey, request.MetricInfo},
-                {GrpcConsts.TimeoutMetadataKey, AnnouncementTimeout.ToString()}
-            };
+            Metadata data = new Metadata { {GrpcConstants.TimeoutMetadataKey, AnnouncementTimeout.ToString()} };
 
             return RequestAsync(_client, c => c.AnnounceAsync(header, data), request);
         }
+        
+        public Task PreLibAnnounceAsync(PeerPreLibAnnouncement peerPreLibAnnouncement)
+        {
+            var request = new GrpcRequest
+            {
+                ErrorMessage = $"Broadcast announce for {peerPreLibAnnouncement.BlockHash} failed.",
+                MetricName = nameof(MetricNames.PreLibAnnounce),
+                MetricInfo = $"Block hash {peerPreLibAnnouncement.BlockHash}"
+            };
+
+            var data = new Metadata { {GrpcConstants.TimeoutMetadataKey, AnnouncementTimeout.ToString()} };
+
+            return RequestAsync(_client, c => c.PreLibAnnounceAsync(peerPreLibAnnouncement, data), request);
+        }
+        
+        
 
         public Task SendTransactionAsync(Transaction tx)
         {
             GrpcRequest request = new GrpcRequest
             {
-                ErrorMessage = $"Bcast tx for {tx.GetHash()} failed.",
-                Timeout = 100
+                ErrorMessage = $"Broadcast transaction for {tx.GetHash()} failed."
             };
             
             Metadata data = new Metadata
             {
-                {GrpcConsts.TimeoutMetadataKey, TransactionBroadCastTimeout.ToString()}
+                {GrpcConstants.TimeoutMetadataKey, TransactionBroadcastTimeout.ToString()}
             };
             
             return RequestAsync(_client, c => c.SendTransactionAsync(tx, data), request);
@@ -189,12 +199,12 @@ namespace AElf.OS.Network.Grpc
         {
             var metricsName = requestParams.MetricName;
             bool timeRequest = !string.IsNullOrEmpty(metricsName);
-            var dateBeforeRequest = DateTime.Now;
+            var requestStartTime = TimestampHelper.GetUtcNow();
             
-            Stopwatch s = null;
+            Stopwatch requestTimer = null;
             
             if (timeRequest)
-                s = Stopwatch.StartNew();
+                requestTimer = Stopwatch.StartNew();
                 
             try
             {
@@ -202,8 +212,8 @@ namespace AElf.OS.Network.Grpc
 
                 if (timeRequest)
                 {
-                    s.Stop();
-                    RecordMetric(requestParams, dateBeforeRequest, s.ElapsedMilliseconds);
+                    requestTimer.Stop();
+                    RecordMetric(requestParams, requestStartTime, requestTimer.ElapsedMilliseconds);
                 }
                 
                 return response;
@@ -216,15 +226,15 @@ namespace AElf.OS.Network.Grpc
             {
                 if (timeRequest)
                 {
-                    s.Stop();
-                    RecordMetric(requestParams, dateBeforeRequest, s.ElapsedMilliseconds);
+                    requestTimer.Stop();
+                    RecordMetric(requestParams, requestStartTime, requestTimer.ElapsedMilliseconds);
                 }
             }
 
             return default(TResp);
         }
 
-        private void RecordMetric(GrpcRequest grpcRequest, DateTime dateTimeBeforeRequest, long elapsedMilliseconds)
+        private void RecordMetric(GrpcRequest grpcRequest, Timestamp requestStartTime, long elapsedMilliseconds)
         {
             var metrics = _recentRequestsRoundtripTimes[grpcRequest.MetricName];
                     
@@ -234,7 +244,7 @@ namespace AElf.OS.Network.Grpc
             metrics.Enqueue(new RequestMetric
             {
                 Info = grpcRequest.MetricInfo,
-                RequestTime = dateTimeBeforeRequest,
+                RequestTime = requestStartTime,
                 MethodName = grpcRequest.MetricName,
                 RoundTripTime = elapsedMilliseconds
             });
@@ -258,7 +268,7 @@ namespace AElf.OS.Network.Grpc
                 Task.Run(async () =>
                 {
                     await _channel.TryWaitForStateChangedAsync(_channel.State,
-                        DateTime.UtcNow.AddSeconds(NetworkConsts.DefaultPeerDialTimeoutInMilliSeconds));
+                        DateTime.UtcNow.AddSeconds(NetworkConstants.DefaultPeerDialTimeoutInMilliSeconds));
 
                     // Either we connected again or the state change wait timed out.
                     if (_channel.State == ChannelState.TransientFailure || _channel.State == ChannelState.Connecting)
@@ -300,6 +310,17 @@ namespace AElf.OS.Network.Grpc
             while (_recentBlockHeightAndHashMappings.Count > 10)
             {
                 _recentBlockHeightAndHashMappings.TryRemove(_recentBlockHeightAndHashMappings.Keys.Min(), out _);
+            }
+        }
+
+        public void HandlerRemotePreLibAnnounce(PeerPreLibAnnouncement peerPreLibAnnouncement)
+        {
+            CurrentBlockHeight = peerPreLibAnnouncement.BlockHeight;
+            CurrentBlockHash = peerPreLibAnnouncement.BlockHash;
+            _preLibBlockHeightAndHashMappings[CurrentBlockHeight] = CurrentBlockHash;
+            while (_preLibBlockHeightAndHashMappings.Count > 10)
+            {
+                _preLibBlockHeightAndHashMappings.TryRemove(_preLibBlockHeightAndHashMappings.Keys.Min(), out _);
             }
         }
 
