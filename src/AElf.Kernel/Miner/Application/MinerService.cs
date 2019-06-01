@@ -49,9 +49,9 @@ namespace AElf.Kernel.Miner.Application
         public async Task<Block> MineAsync(Hash previousBlockHash, long previousBlockHeight, DateTime dateTime,
             TimeSpan blockExecutionTime)
         {
-            Logger.LogDebug("Begin get txs from tx pool");
+            Logger.LogDebug("Mining test: Begin get txs from tx pool");
             var executableTransactionSet = await _txHub.GetExecutableTransactionSetAsync();
-            Logger.LogDebug($"get {executableTransactionSet.Transactions.Count} txs from tx pool");
+            Logger.LogDebug($"Mining test: get {executableTransactionSet.Transactions.Count} txs from tx pool");
             var pending = new List<Transaction>();
             if (executableTransactionSet.PreviousBlockHash == previousBlockHash)
             {
@@ -151,22 +151,22 @@ namespace AElf.Kernel.Miner.Application
         {
             using (var cts = new CancellationTokenSource())
             {
-                Logger.LogDebug("Begin generate block");
+                Logger.LogDebug("Mining test: Begin generate block");
                 var block = await GenerateBlock(requestMiningDto.PreviousBlockHash,
                     requestMiningDto.PreviousBlockHeight, blockTime);
-                Logger.LogDebug("Begin generate system txs");
+                Logger.LogDebug("Mining test: Begin generate system txs");
                 var systemTransactions = await GenerateSystemTransactions(requestMiningDto.PreviousBlockHash,
                     requestMiningDto.PreviousBlockHeight);
 
                 var pending = transactions;
 
                 cts.CancelAfter(requestMiningDto.BlockExecutionTime);
-                Logger.LogDebug("Begin execute block");
+                Logger.LogDebug($"Mining test: Begin execute block. {requestMiningDto.BlockExecutionTime.Milliseconds}");
                 block = await _blockExecutingService.ExecuteBlockAsync(block.Header,
                     systemTransactions, pending, cts.Token);
-                Logger.LogDebug("Begin sign block");
+                Logger.LogDebug("Mining test: Begin sign block");
                 await SignBlockAsync(block);
-                Logger.LogInformation($"Generated block: {block.ToDiagnosticString()}, " +
+                Logger.LogInformation($"Mining test: Generated block: {block.ToDiagnosticString()}, " +
                                       $"previous: {block.Header.PreviousBlockHash}, " +
                                       $"transactions: {block.Body.TransactionsCount}");
                 return block;

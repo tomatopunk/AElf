@@ -48,7 +48,7 @@ namespace AElf.OS.Network.Grpc
                 // if no problem occured return
                 if (!response.IsFaulted)
                 {
-                    Logger.LogDebug($"[{PeerIp}] {metricInfo} - succeed.");
+                    //Logger.LogDebug($"[{PeerIp}] {metricInfo} - succeed.");
 
                     return response.Result;
                 }

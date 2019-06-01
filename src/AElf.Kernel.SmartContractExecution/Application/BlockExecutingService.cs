@@ -41,7 +41,7 @@ namespace AElf.Kernel.SmartContractExecution.Application
             IEnumerable<Transaction> nonCancellableTransactions, IEnumerable<Transaction> cancellableTransactions,
             CancellationToken cancellationToken)
         {
-            Logger.LogTrace("Entered ExecuteBlockAsync");
+            Logger.LogTrace("Execute Block Test: Entered ExecuteBlockAsync");
             var nonCancellable = nonCancellableTransactions.ToList();
             var cancellable = cancellableTransactions.ToList();
 
@@ -49,7 +49,7 @@ namespace AElf.Kernel.SmartContractExecution.Application
                 await _executingService.ExecuteAsync(
                     new TransactionExecutingDto {BlockHeader = blockHeader, Transactions = nonCancellable},
                     CancellationToken.None, true);
-            Logger.LogTrace("Executed non-cancellable txs");
+            Logger.LogTrace("Execute Block Test: Executed non-cancellable txs");
 
             var returnSetContainer = new ReturnSetContainer(nonCancellableReturnSets);
             List<ExecutionReturnSet> cancellableReturnSets = new List<ExecutionReturnSet>();
@@ -61,10 +61,8 @@ namespace AElf.Kernel.SmartContractExecution.Application
                 returnSetContainer.AddRange(cancellableReturnSets);
             }
 
-            Logger.LogTrace("Executed cancellable txs");
-
-            Logger.LogTrace("Handled return set");
-
+            Logger.LogTrace("Execute Block Test: Executed cancellable txs");
+            
             if (returnSetContainer.Unexecutable.Count > 0)
             {
                 await EventBus.PublishAsync(
@@ -77,7 +75,7 @@ namespace AElf.Kernel.SmartContractExecution.Application
             var block = await _blockGenerationService.FillBlockAfterExecutionAsync(blockHeader, allExecutedTransactions,
                 returnSetContainer.Executed);
 
-            Logger.LogTrace("Filled block");
+            Logger.LogTrace("Execute Block Test: Filled block");
 
             return block;
         }
