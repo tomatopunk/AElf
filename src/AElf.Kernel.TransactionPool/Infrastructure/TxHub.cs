@@ -72,6 +72,12 @@ namespace AElf.Kernel.TransactionPool.Infrastructure
                 PreviousBlockHeight = _bestChainHeight
             };
             output.Transactions.AddRange(_validated.Values.Select(x => x.Transaction));
+            
+            Logger.LogWarning($"TxPool: _allTransactions: {_allTransactions.Count}");
+            Logger.LogWarning($"TxPool: _validated: {_validated.Count}");
+            Logger.LogWarning($"TxPool: _invalidatedByBlock: {_invalidatedByBlock.Count}");
+            Logger.LogWarning($"TxPool: _expiredByExpiryBlock: {_expiredByExpiryBlock.Count}");
+            Logger.LogWarning($"TxPool: _futureByBlock: {_futureByBlock.Count}");
 
             return output;
         }
