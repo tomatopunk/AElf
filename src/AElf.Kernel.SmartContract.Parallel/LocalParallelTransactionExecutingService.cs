@@ -53,7 +53,13 @@ namespace AElf.Kernel.SmartContract.Parallel
             var results = await Task.WhenAll(tasks);
             
             Logger.LogTrace($"Executed parallelizables.");
-            
+
+            foreach (var group in parallelizable)
+            {
+                Logger.LogTrace($"#### Group tx count: {group.Count}");
+            }
+            Logger.LogTrace($"### nonParallizable tx count: {nonParallizable.Count}");
+
             var returnSets = MergeResults(results, out var conflictingSets).Item1;
             var returnSetCollection = new ReturnSetCollection(returnSets);
 

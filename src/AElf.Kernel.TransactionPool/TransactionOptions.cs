@@ -5,6 +5,6 @@ namespace AElf.Kernel.TransactionPool
         /// <summary>
         /// Transaction pool limit.
         /// </summary>
-        public int PoolLimit { get; set; } = 5120;
+        public int PoolLimit { get; set; } = 10240;
     }
 }

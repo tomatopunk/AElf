@@ -52,6 +52,7 @@ namespace AElf.Kernel.SmartContract.Parallel
             await executive.ApplyAsync(transactionContext);
             if (!trace.IsSuccessful())
             {
+                Console.WriteLine($"### ERROR {input.MethodName} {trace.StdErr}");
                 return (input, NotParallelizable(txId));
             }
 
