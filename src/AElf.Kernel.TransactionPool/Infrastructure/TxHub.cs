@@ -82,7 +82,7 @@ namespace AElf.Kernel.TransactionPool.Infrastructure
                 {
                     count += item.Count;
                 }
-                Logger.LogWarning($"TxPool: _invalidatedByBlock: {_invalidatedByBlock.Count}");
+                Logger.LogWarning($"TxPool: _invalidatedByBlock: {count}");
             }
             if (_expiredByExpiryBlock.Count > 0)
             {
@@ -91,7 +91,7 @@ namespace AElf.Kernel.TransactionPool.Infrastructure
                 {
                     count += item.Count;
                 }
-                Logger.LogWarning($"TxPool: _expiredByExpiryBlock: {_expiredByExpiryBlock.Count}");
+                Logger.LogWarning($"TxPool: _expiredByExpiryBlock: {count}");
             }
             if (_futureByBlock.Count > 0)
             {
@@ -100,7 +100,7 @@ namespace AElf.Kernel.TransactionPool.Infrastructure
                 {
                     count += item.Count;
                 }
-                Logger.LogWarning($"TxPool: _futureByBlock: {_futureByBlock.Count}");
+                Logger.LogWarning($"TxPool: _futureByBlock: {count}");
             }
 
             return output;
@@ -148,7 +148,7 @@ namespace AElf.Kernel.TransactionPool.Infrastructure
                 return;
             }
 
-            Logger.LogWarning($"TxPool: RefBlockInvalid: ExpiryBlockNumber: {receipt.Transaction.GetExpiryBlockNumber()}, bestChainHeight: {bestChainHeight}, prefix : {prefix==null}, RefBlockPrefix: {receipt.Transaction.RefBlockPrefix.ToHex()}");
+            Logger.LogWarning($"TxPool: ExpiryBlockNumber: {receipt.Transaction.GetExpiryBlockNumber()}, bestChainHeight: {bestChainHeight}, prefix : {prefix.ToHex()}, RefBlockPrefix: {receipt.Transaction.RefBlockPrefix.ToHex()}");
             receipt.RefBlockStatus = RefBlockStatus.RefBlockInvalid;
         }
 
@@ -300,15 +300,24 @@ namespace AElf.Kernel.TransactionPool.Infrastructure
 
         public async Task HandleNewIrreversibleBlockFoundAsync(NewIrreversibleBlockFoundEvent eventData)
         {
-            foreach (var txIds in _expiredByExpiryBlock.Where(kv => kv.Key <= eventData.BlockHeight))
+            CleanCache(_expiredByExpiryBlock,eventData.BlockHeight);
+            CleanCache(_invalidatedByBlock, eventData.BlockHeight);
+
+            await Task.CompletedTask;
+        }
+
+        private void CleanCache(ConcurrentDictionary<long, ConcurrentDictionary<Hash, TransactionReceipt>>
+            collection, long blockHeight)
+        {
+            foreach (var item in collection.Where(kv => kv.Key <= blockHeight))
             {
-                foreach (var txId in txIds.Value.Keys)
+                foreach (var txId in item.Value.Keys)
                 {
                     _allTransactions.TryRemove(txId, out _);
                 }
-            }
 
-            await Task.CompletedTask;
+                collection.TryRemove(item.Key, out _);
+            }
         }
 
         public async Task HandleUnexecutableTransactionsFoundAsync(UnexecutableTransactionsFoundEvent eventData)
