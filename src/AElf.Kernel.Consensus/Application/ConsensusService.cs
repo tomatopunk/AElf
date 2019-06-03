@@ -128,6 +128,7 @@ namespace AElf.Kernel.Consensus.Application
 
         public async Task<IEnumerable<Transaction>> GenerateConsensusTransactionsAsync(ChainContext chainContext)
         {
+            Logger.LogTrace($"Start generate consensus transaction..");
             _blockTimeProvider.SetBlockTime(_nextMiningTime);
 
             Logger.LogTrace($"Set block time to next mining time: {_nextMiningTime:hh:mm:ss.ffffff}. Txs.");
@@ -146,7 +147,8 @@ namespace AElf.Kernel.Consensus.Application
                 generatedTransaction.RefBlockPrefix =
                     ByteString.CopyFrom(chainContext.BlockHash.Value.Take(4).ToArray());
             }
-
+            
+            Logger.LogTrace($"Finish generate consensus transaction..");
             return generatedTransactions;
         }
     }
