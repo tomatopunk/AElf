@@ -75,9 +75,33 @@ namespace AElf.Kernel.TransactionPool.Infrastructure
             
             Logger.LogWarning($"TxPool: _allTransactions: {_allTransactions.Count}");
             Logger.LogWarning($"TxPool: _validated: {_validated.Count}");
-            Logger.LogWarning($"TxPool: _invalidatedByBlock: {_invalidatedByBlock.Count}");
-            Logger.LogWarning($"TxPool: _expiredByExpiryBlock: {_expiredByExpiryBlock.Count}");
-            Logger.LogWarning($"TxPool: _futureByBlock: {_futureByBlock.Count}");
+            if (_invalidatedByBlock.Count > 0)
+            {
+                var count = 0;
+                foreach (var item in _invalidatedByBlock.Values)
+                {
+                    count += item.Count;
+                }
+                Logger.LogWarning($"TxPool: _invalidatedByBlock: {_invalidatedByBlock.Count}");
+            }
+            if (_expiredByExpiryBlock.Count > 0)
+            {
+                var count = 0;
+                foreach (var item in _expiredByExpiryBlock.Values)
+                {
+                    count += item.Count;
+                }
+                Logger.LogWarning($"TxPool: _expiredByExpiryBlock: {_expiredByExpiryBlock.Count}");
+            }
+            if (_futureByBlock.Count > 0)
+            {
+                var count = 0;
+                foreach (var item in _futureByBlock.Values)
+                {
+                    count += item.Count;
+                }
+                Logger.LogWarning($"TxPool: _futureByBlock: {_futureByBlock.Count}");
+            }
 
             return output;
         }
@@ -104,7 +128,7 @@ namespace AElf.Kernel.TransactionPool.Infrastructure
             receipts.TryAdd(receipt.TransactionId, receipt);
         }
 
-        private static void CheckPrefixForOne(TransactionReceipt receipt, ByteString prefix, long bestChainHeight)
+        private void CheckPrefixForOne(TransactionReceipt receipt, ByteString prefix, long bestChainHeight)
         {
             if (receipt.Transaction.GetExpiryBlockNumber() <= bestChainHeight)
             {
@@ -124,6 +148,7 @@ namespace AElf.Kernel.TransactionPool.Infrastructure
                 return;
             }
 
+            Logger.LogWarning($"TxPool: RefBlockInvalid: ExpiryBlockNumber: {receipt.Transaction.GetExpiryBlockNumber()}, bestChainHeight: {bestChainHeight}, prefix : {prefix==null}, RefBlockPrefix: {receipt.Transaction.RefBlockPrefix.ToHex()}");
             receipt.RefBlockStatus = RefBlockStatus.RefBlockInvalid;
         }
 
