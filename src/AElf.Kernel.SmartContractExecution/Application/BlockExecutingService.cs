@@ -71,7 +71,8 @@ namespace AElf.Kernel.SmartContractExecution.Application
 
             var executed = new HashSet<Hash>(cancellableReturnSets.Select(x => x.TransactionId));
             var allExecutedTransactions =
-                nonCancellable.Concat(cancellable.AsParallel().Where(x => executed.Contains(x.GetHash()))).ToList();
+                nonCancellable.Concat(cancellable.Where(x => executed.Contains(x.GetHash()))).ToList();
+            Logger.LogTrace("Execute Block Test: Fill block");
             var block = await _blockGenerationService.FillBlockAfterExecutionAsync(blockHeader, allExecutedTransactions,
                 returnSetContainer.Executed);
 
