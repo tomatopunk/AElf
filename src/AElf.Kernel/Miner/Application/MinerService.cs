@@ -103,10 +103,12 @@ namespace AElf.Kernel.Miner.Application
         private async Task<List<Transaction>> GenerateSystemTransactions(Hash previousBlockHash,
             long previousBlockHeight)
         {
+            Logger.LogTrace("Start generate system transaction ..");
             var address = Address.FromPublicKey(await _accountService.GetPublicKeyAsync());
             var systemTransactions = _systemTransactionGenerationService.GenerateSystemTransactions(address,
                 previousBlockHeight, previousBlockHash);
 
+            Logger.LogTrace("Start sign system transaction ..");
             foreach (var transaction in systemTransactions)
             {
                 await SignAsync(transaction);
