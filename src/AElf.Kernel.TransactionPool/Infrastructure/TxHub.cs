@@ -72,6 +72,36 @@ namespace AElf.Kernel.TransactionPool.Infrastructure
                 PreviousBlockHeight = _bestChainHeight
             };
             output.Transactions.AddRange(_validated.Values.Select(x => x.Transaction));
+            
+            Logger.LogWarning($"TxPool: _allTransactions: {_allTransactions.Count}");
+            Logger.LogWarning($"TxPool: _validated: {_validated.Count}");
+            if (_invalidatedByBlock.Count > 0)
+            {
+                var count = 0;
+                foreach (var item in _invalidatedByBlock.Values)
+                {
+                    count += item.Count;
+                }
+                Logger.LogWarning($"TxPool: _invalidatedByBlock: {count}");
+            }
+            if (_expiredByExpiryBlock.Count > 0)
+            {
+                var count = 0;
+                foreach (var item in _expiredByExpiryBlock.Values)
+                {
+                    count += item.Count;
+                }
+                Logger.LogWarning($"TxPool: _expiredByExpiryBlock: {count}");
+            }
+            if (_futureByBlock.Count > 0)
+            {
+                var count = 0;
+                foreach (var item in _futureByBlock.Values)
+                {
+                    count += item.Count;
+                }
+                Logger.LogWarning($"TxPool: _futureByBlock: {count}");
+            }
 
             return output;
         }
@@ -269,13 +299,8 @@ namespace AElf.Kernel.TransactionPool.Infrastructure
 
         public async Task HandleNewIrreversibleBlockFoundAsync(NewIrreversibleBlockFoundEvent eventData)
         {
-            foreach (var txIds in _expiredByExpiryBlock.Where(kv => kv.Key <= eventData.BlockHeight))
-            {
-                foreach (var txId in txIds.Value.Keys)
-                {
-                    _allTransactions.TryRemove(txId, out _);
-                }
-            }
+            CleanCache(_expiredByExpiryBlock,eventData.BlockHeight);
+            CleanCache(_invalidatedByBlock, eventData.BlockHeight);
 
             await Task.CompletedTask;
         }
@@ -293,6 +318,20 @@ namespace AElf.Kernel.TransactionPool.Infrastructure
         public async Task<int> GetTransactionPoolSizeAsync()
         {
             return await Task.FromResult(_allTransactions.Count);
+        }
+        
+        private void CleanCache(ConcurrentDictionary<long, ConcurrentDictionary<Hash, TransactionReceipt>>
+            collection, long blockHeight)
+        {
+            foreach (var item in collection.Where(kv => kv.Key <= blockHeight))
+            {
+                foreach (var txId in item.Value.Keys)
+                {
+                    _allTransactions.TryRemove(txId, out _);
+                }
+
+                collection.TryRemove(item.Key, out _);
+            }
         }
     }
 }
