@@ -209,6 +209,9 @@ namespace AElf.Contracts.Consensus.AEDPoS
 
             if (AEDPoSContractConstants.TotalTinySlots == 1)
             {
+                limitMillisecondsOfMiningBlock = limitMillisecondsOfMiningBlock
+                    .Mul(AEDPoSContractConstants.LimitBlockExecutionTimeWeight)
+                    .Div(AEDPoSContractConstants.LimitBlockExecutionTimeTotalWeight);
                 return;
             }
 
