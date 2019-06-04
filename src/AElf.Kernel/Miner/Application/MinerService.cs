@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 using AElf.Kernel.Account.Application;
@@ -148,6 +149,7 @@ namespace AElf.Kernel.Miner.Application
         public async Task<Block> MineAsync(RequestMiningDto requestMiningDto, List<Transaction> transactions,
             Timestamp blockTime)
         {
+            // Console.WriteLine($"#### {DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture)}, blockTime: {blockTime}");
             using (var cts = new CancellationTokenSource())
             {
                 cts.CancelAfter((int) requestMiningDto.BlockExecutionTime.Milliseconds());

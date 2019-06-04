@@ -46,12 +46,12 @@ namespace AElf.Kernel.SmartContract.Parallel
 //                throw new NotSupportedException(
 //                    $"Throwing exception is not supported in {nameof(LocalParallelTransactionExecutingService)}.");
 //            }
-
+            
             var (parallelizable, nonParallizable) = await _grouper.GroupAsync(transactions);
-            var tasks = parallelizable.Select(txns => ExecuteAndPreprocessResult(blockHeader, txns, cancellationToken,
+            var tasks = parallelizable.AsParallel().Select(txns => ExecuteAndPreprocessResult(blockHeader, txns, cancellationToken,
                 throwException, partialBlockStateSet));
             var results = await Task.WhenAll(tasks);
-            
+
             Logger.LogTrace($"Executed parallelizables.");
 
             foreach (var group in parallelizable)
@@ -66,7 +66,7 @@ namespace AElf.Kernel.SmartContract.Parallel
             var updatedPartialBlockStateSet = returnSetCollection.ToBlockStateSet();
             updatedPartialBlockStateSet.MergeFrom(partialBlockStateSet?.Clone() ?? new BlockStateSet());
             
-            Logger.LogTrace($"Merged results from parallelizables.");
+            Logger.LogTrace($"Merged results from parallelizables. {returnSets.Count}");
             
             var nonParallelizableReturnSets = await _plainExecutingService.ExecuteAsync(
                 new TransactionExecutingDto
@@ -76,7 +76,7 @@ namespace AElf.Kernel.SmartContract.Parallel
                 },
                 cancellationToken, throwException, updatedPartialBlockStateSet);
             
-            Logger.LogTrace($"Merged results from non-parallelizables.");
+            Logger.LogTrace($"Merged results from non-parallelizables. {nonParallelizableReturnSets.Count}");
             returnSets.AddRange(nonParallelizableReturnSets);
             if (conflictingSets.Count > 0)
             {
@@ -93,16 +93,21 @@ namespace AElf.Kernel.SmartContract.Parallel
             BlockHeader blockHeader, List<Transaction> transactions, CancellationToken cancellationToken,
             bool throwException = false, BlockStateSet partialBlockStateSet = null)
         {
+            // Console.WriteLine($"#### Enter ExecuteAndPreprocessResult, transactions: {transactions.Count}");
+
             var executionReturnSets = await _plainExecutingService.ExecuteAsync(
                 new TransactionExecutingDto
                 {
                     BlockHeader = blockHeader,
                     Transactions = transactions
                 },
-                cancellationToken, throwException,
+                cancellationToken, true,
                 partialBlockStateSet);
             var keys = new HashSet<string>(
                 executionReturnSets.SelectMany(s => s.StateChanges.Keys.Concat(s.StateAccesses.Keys)));
+
+            //Console.WriteLine($"Exit ExecuteAndPreprocessResult, executionReturnSets: {executionReturnSets.Count}, keys: {keys.Count}");
+
             return (executionReturnSets, keys);
         }
 
