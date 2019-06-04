@@ -80,6 +80,7 @@ namespace AElf.Kernel.SmartContract.Parallel
             returnSets.AddRange(nonParallelizableReturnSets);
             if (conflictingSets.Count > 0)
             {
+                Logger.LogWarning($"### conflictingSets {conflictingSets.Count}");
                 // TODO: Add event handler somewhere
                 await EventBus.PublishAsync(
                     new ConflictingTransactionsFoundInParallelGroupsEvent(returnSets, conflictingSets));
