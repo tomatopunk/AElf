@@ -48,17 +48,13 @@ namespace AElf.Kernel.SmartContract.Application
 
             var returnSets = new List<ExecutionReturnSet>();
 
-            //Console.WriteLine($"{DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture)} Enter ExecuteAsync: txcount: {transactionExecutingDto.Transactions.Count()}");
-
             foreach (var transaction in transactionExecutingDto.Transactions)
             {
                 if (cancellationToken.IsCancellationRequested)
                 {
-                    // Console.WriteLine($"### {DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture)} Execution Cancelled");
                     break;
                 }
 
-                // Console.WriteLine($" Execute tx: {transaction.MethodName}");
                 var trace = await ExecuteOneAsync(0, groupChainContext, transaction,
                     transactionExecutingDto.BlockHeader.Time,
                     cancellationToken);
@@ -66,7 +62,6 @@ namespace AElf.Kernel.SmartContract.Application
                 //Logger.LogTrace(transaction.MethodName);
                 //Logger.LogTrace(trace.StateSet.Writes.Values.Select(v => v.ToBase64().CalculateHash().ToHex()).JoinAsString("\n"));
                 
-                // Console.WriteLine($"Trace: trace.IsSuccessful: {trace.IsSuccessful()}");
                 if (!trace.IsSuccessful())
                 {
                     if (throwException)

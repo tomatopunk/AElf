@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -93,7 +94,8 @@ namespace AElf.Kernel.SmartContract.Parallel
             BlockHeader blockHeader, List<Transaction> transactions, CancellationToken cancellationToken,
             bool throwException = false, BlockStateSet partialBlockStateSet = null)
         {
-            // Console.WriteLine($"#### Enter ExecuteAndPreprocessResult, transactions: {transactions.Count}");
+            var stopWatch = new Stopwatch();
+            stopWatch.Start();
 
             var executionReturnSets = await _plainExecutingService.ExecuteAsync(
                 new TransactionExecutingDto
@@ -101,13 +103,13 @@ namespace AElf.Kernel.SmartContract.Parallel
                     BlockHeader = blockHeader,
                     Transactions = transactions
                 },
-                cancellationToken, true,
+                cancellationToken, throwException,
                 partialBlockStateSet);
             var keys = new HashSet<string>(
                 executionReturnSets.SelectMany(s => s.StateChanges.Keys.Concat(s.StateAccesses.Keys)));
 
-            //Console.WriteLine($"Exit ExecuteAndPreprocessResult, executionReturnSets: {executionReturnSets.Count}, keys: {keys.Count}");
-
+            stopWatch.Stop();
+            Logger.LogDebug($"#### ExecuteAndPreprocessResult: txs: {transactions.Count}, executed: {executionReturnSets.Count}. perf: {stopWatch.ElapsedMilliseconds} ms");
             return (executionReturnSets, keys);
         }
 

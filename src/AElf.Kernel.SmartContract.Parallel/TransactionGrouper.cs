@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using AElf.Kernel.Blockchain.Application;
@@ -34,6 +35,9 @@ namespace AElf.Kernel.SmartContract.Parallel
 
         public async Task<(List<List<Transaction>>, List<Transaction>)> GroupAsync(List<Transaction> transactions)
         {
+            var stopWatch = new Stopwatch();
+            stopWatch.Start();
+
             var chainContext = await GetChainContextAsync();
             if (chainContext == null)
             {
@@ -95,6 +99,8 @@ namespace AElf.Kernel.SmartContract.Parallel
                 groups.AddRange(groupedTxs);
             }
 
+            stopWatch.Stop();
+            Logger.LogDebug($"### GroupAsync: txs: {transactions.Count}, goups: {groups.Count}, perf: {stopWatch.ElapsedMilliseconds} ms");
             return (groups, nonParallelizables);
         }
 
