@@ -8,6 +8,8 @@ using AElf.Kernel.SmartContract.Domain;
 using AElf.Types;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace AElf.Kernel.Blockchain.Application
 {
@@ -16,10 +18,15 @@ namespace AElf.Kernel.Blockchain.Application
         private readonly IBlockExtraDataService _blockExtraDataService;
         private readonly IStaticChainInformationProvider _staticChainInformationProvider;
         private readonly IBlockchainStateManager _blockchainStateManager;
+        
+        public ILogger<BlockGenerationService> Logger { get; set; }
+
 
         public BlockGenerationService(IBlockExtraDataService blockExtraDataService,
             IStaticChainInformationProvider staticChainInformationProvider, IBlockchainStateManager blockchainStateManager)
         {
+            Logger = NullLogger<BlockGenerationService>.Instance;
+            
             _blockExtraDataService = blockExtraDataService;
             _staticChainInformationProvider = staticChainInformationProvider;
             _blockchainStateManager = blockchainStateManager;
@@ -49,6 +56,8 @@ namespace AElf.Kernel.Blockchain.Application
         public async Task<Block> FillBlockAfterExecutionAsync(BlockHeader blockHeader, List<Transaction> transactions,
             List<ExecutionReturnSet> blockExecutionReturnSet)
         {
+            var blockHeaderOriginal = blockHeader.Clone();
+            
             var bloom = new Bloom();
             var blockStateSet = new BlockStateSet
             {
@@ -105,6 +114,24 @@ namespace AElf.Kernel.Blockchain.Application
             blockStateSet.BlockHash = blockHeader.GetHash();
 
             await _blockchainStateManager.SetBlockStateSetAsync(blockStateSet);
+
+            if (blockHeaderOriginal.GetHash() != block.GetHash())
+            {
+                Logger.LogDebug($"Original Hash: {blockHeaderOriginal.GetHash()}");
+                Logger.LogDebug($"NewBlock Hash: {block.GetHash()}");
+                
+                Logger.LogDebug($"Original Bloom: {blockHeaderOriginal.Bloom?.ToHex()}");
+                Logger.LogDebug($"NewBlock Bloom: {block.Header.Bloom?.ToHex()}");
+
+                Logger.LogDebug($"Original MerkleTreeRootOfWorldState: {blockHeaderOriginal.MerkleTreeRootOfWorldState?.ToHex()}");
+                Logger.LogDebug($"NewBlock MerkleTreeRootOfWorldState: {block.Header.MerkleTreeRootOfWorldState?.ToHex()}");
+                
+                Logger.LogDebug($"Original MerkleTreeRootOfTransactions: {blockHeaderOriginal.MerkleTreeRootOfTransactions?.ToHex()}");
+                Logger.LogDebug($"NewBlock MerkleTreeRootOfTransactions: {block.Header.MerkleTreeRootOfTransactions?.ToHex()}");
+                
+                Logger.LogDebug($"Original MerkleTreeRootOfTransactionStatus: {blockHeaderOriginal.MerkleTreeRootOfTransactionStatus?.ToHex()}");
+                Logger.LogDebug($"NewBlock MerkleTreeRootOfTransactionStatus: {block.Header.MerkleTreeRootOfTransactionStatus?.ToHex()}");
+            }
 
             return block;
         }
