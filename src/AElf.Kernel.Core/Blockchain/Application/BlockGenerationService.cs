@@ -83,7 +83,7 @@ namespace AElf.Kernel.Blockchain.Application
             }
             blockHeader.MerkleTreeRootOfWorldState = merkleTreeRootOfWorldState;
             
-            var allExecutedTransactionIds = transactions.AsParallel().Select(x => x.GetHash()).ToList();
+            var allExecutedTransactionIds = transactions.Select(x => x.GetHash()).ToList();
             var bmt = new BinaryMerkleTree();
             bmt.AddNodes(allExecutedTransactionIds);
             blockHeader.MerkleTreeRootOfTransactions = bmt.ComputeRootHash();

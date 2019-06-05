@@ -92,15 +92,16 @@ namespace AElf.Kernel.SmartContract.Parallel
                 
                     parallelizables.Add(twr);
                 }
-                
+
+                stopWatch.Stop();
+                Logger.LogDebug($"### GroupAsync: txs: {transactions.Count}, goups: {groups.Count}, perf: {stopWatch.ElapsedMilliseconds} ms");
+
                 var groupedTxs = GroupParallelizables(parallelizables);
                 Logger.LogTrace($"Completed transaction grouping.");
-                
+
                 groups.AddRange(groupedTxs);
             }
 
-            stopWatch.Stop();
-            Logger.LogDebug($"### GroupAsync: txs: {transactions.Count}, goups: {groups.Count}, perf: {stopWatch.ElapsedMilliseconds} ms");
             return (groups, nonParallelizables);
         }
 

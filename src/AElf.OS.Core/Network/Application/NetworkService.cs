@@ -63,7 +63,7 @@ namespace AElf.OS.Network.Application
             
             Logger.LogDebug("About to broadcast to peers.");
             
-            var tasks = peers.AsParallel().Select(peer => DoAnnounce(peer, announce)).ToList();
+            var tasks = peers.Select(peer => DoAnnounce(peer, announce)).ToList();
             await Task.WhenAll(tasks);
 
             foreach (var finishedTask in tasks.Where(t => t.IsCompleted))
@@ -202,7 +202,7 @@ namespace AElf.OS.Network.Application
                 return null;
             }
             
-            var taskList = peers.AsParallel().Select(peer => DoRequest(peer, func)).ToList();
+            var taskList = peers.Select(peer => DoRequest(peer, func)).ToList();
             
             Task<(IPeer, T)> finished = null;
             

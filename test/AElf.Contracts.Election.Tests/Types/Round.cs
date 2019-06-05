@@ -15,7 +15,7 @@ namespace AElf.Contracts.Consensus.AEDPoS
     internal partial class Round
     {
         public long RoundId =>
-            RealTimeMinersInformation.Values.AsParallel().Select(bpInfo => bpInfo.ExpectedMiningTime.Seconds).Sum();
+            RealTimeMinersInformation.Values.Select(bpInfo => bpInfo.ExpectedMiningTime.Seconds).Sum();
 
         public Hash GetHash(bool isContainPreviousInValue = true)
         {
