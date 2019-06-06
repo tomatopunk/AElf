@@ -96,7 +96,7 @@ namespace AElf.Kernel.SmartContract.Parallel
                     new ConflictingTransactionsFoundInParallelGroupsEvent(returnSets, conflictingSets));
             }
 
-            return returnSets;
+            return returnSets.OrderBy(d => transactions.Select(t => t.GetHash()).ToList().IndexOf(d.TransactionId)).ToList();
         }
 
         private async Task<(List<ExecutionReturnSet>, HashSet<string>)> ExecuteAndPreprocessResult(

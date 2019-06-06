@@ -96,7 +96,7 @@ namespace AElf.Kernel.Blockchain.Application
 //            }
             
             _blockExtraDataService.FillMerkleTreeRootExtraDataForTransactionStatus(blockHeader,
-                blockExecutionReturnSet.OrderBy(x=>x.TransactionId).Select(executionReturn =>
+                blockExecutionReturnSet.Select(executionReturn =>
                     (executionReturn.TransactionId, executionReturn.Status)));
             
             var blockBody = new BlockBody();
