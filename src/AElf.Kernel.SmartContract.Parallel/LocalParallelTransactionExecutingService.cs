@@ -57,10 +57,19 @@ namespace AElf.Kernel.SmartContract.Parallel
 
             foreach (var group in parallelizable)
             {
-                Logger.LogTrace($"#### Group tx count: {group.Count}");
+                Logger.LogTrace($"#### Parallelizable Group tx count: {group.Count}");
+//                foreach (var tx in group)
+//                {
+//                    Logger.LogTrace($"Hash: {tx.GetHash()} From: {tx.From}, To: {tx.To}, {tx.MethodName}");
+//                }
             }
             Logger.LogTrace($"### nonParallizable tx count: {nonParallizable.Count}");
 
+//            foreach (var tx in nonParallizable)
+//            {
+//                Logger.LogTrace($"#### nonParallizable, Hash: {tx.GetHash()} From: {tx.From}, To: {tx.To}, {tx.MethodName}");
+//
+//            }
             var returnSets = MergeResults(results, out var conflictingSets).Item1;
             var returnSetCollection = new ReturnSetCollection(returnSets);
 

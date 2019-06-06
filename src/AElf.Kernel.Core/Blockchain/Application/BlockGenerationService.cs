@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
@@ -88,8 +89,14 @@ namespace AElf.Kernel.Blockchain.Application
             bmt.AddNodes(allExecutedTransactionIds);
             blockHeader.MerkleTreeRootOfTransactions = bmt.ComputeRootHash();
 
+
+//            foreach (var set in blockExecutionReturnSet)
+//            {
+//                Console.WriteLine($"##### {set.TransactionId}, {set.Status}");
+//            }
+            
             _blockExtraDataService.FillMerkleTreeRootExtraDataForTransactionStatus(blockHeader,
-                blockExecutionReturnSet.Select(executionReturn =>
+                blockExecutionReturnSet.OrderBy(x=>x.TransactionId).Select(executionReturn =>
                     (executionReturn.TransactionId, executionReturn.Status)));
             
             var blockBody = new BlockBody();
