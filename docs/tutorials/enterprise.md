@@ -101,3 +101,13 @@ The OS module adds on top of the Kernel modules. It mainly defines Networking co
 #### The C# module (CSharpRuntimeAElfModule)
 
 This modules will bring everything you need to be able to use C# as a programming language.
+
+### Advanced
+
+#### Secure
+
+To authenticate and secure communications between node it is possible to use SSL for the connections between the nodes and also side chain communications. The side chain is simple to set up: for both generate a RSA key-pair for both the side chain and the mainchain. Then generate a self signed certificate and pass this to the main chain node’s options along with the mainchain’s key pair. For the side-chain, start it with its key pair and de main chain’s certificat. 
+
+In order to secure entreprise blockchain communications, you need to set up a certificate authority for all the nodes that can be in the network.
+
+For generating the RSA key pairs and the certificates you can use OpenSSL. For the certificate authority this will depend on your system and global setup.
