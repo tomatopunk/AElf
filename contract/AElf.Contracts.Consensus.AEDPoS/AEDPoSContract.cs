@@ -168,6 +168,7 @@ namespace AElf.Contracts.Consensus.AEDPoS
 
         public override Empty NextRound(Round input)
         {
+            Context.LogDebug(() => $"[AEDPoS] Entered NextRound.");
             if (TryToGetRoundNumber(out var currentRoundNumber))
             {
                 Assert(currentRoundNumber < input.RoundNumber, "Incorrect round number for next round.");
@@ -180,9 +181,13 @@ namespace AElf.Contracts.Consensus.AEDPoS
             }
             else
             {
+                Context.LogDebug(() => $"[AEDPoS] Getting Miners Count.");
+
                 var minersCount = GetMinersCount();
                 if (minersCount != 0 && State.ElectionContract.Value != null)
                 {
+                    Context.LogDebug(() => $"[AEDPoS] Notify Election Contract to update miners count.");
+
                     State.ElectionContract.UpdateMinersCount.Send(new UpdateMinersCountInput
                     {
                         MinersCount = minersCount
@@ -190,10 +195,23 @@ namespace AElf.Contracts.Consensus.AEDPoS
                 }
             }
 
+            Context.LogDebug(() => $"[AEDPoS] Updating current round information");
+
             Assert(TryToGetCurrentRoundInformation(out _), "Failed to get current round information.");
+            
+            Context.LogDebug(() => $"[AEDPoS] Adding next round information");
+
             Assert(TryToAddRoundInformation(input), "Failed to add round information.");
+            
+            Context.LogDebug(() => $"[AEDPoS] Updating round number");
+
             Assert(TryToUpdateRoundNumber(input.RoundNumber), "Failed to update round number.");
+            
+            Context.LogDebug(() => $"[AEDPoS] Start finding LIB.");
+
             TryToFindLastIrreversibleBlock();
+
+            Context.LogDebug(() => $"[AEDPoS] End finding LIB.");
 
             return new Empty();
         }
