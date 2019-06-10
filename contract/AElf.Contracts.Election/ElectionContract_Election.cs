@@ -379,9 +379,14 @@ namespace AElf.Contracts.Election
 
         public override Empty UpdateMinersCount(UpdateMinersCountInput input)
         {
+            Context.LogDebug(() => "Entered UpdateMinersCount method.");
+            
             Assert(State.AEDPoSContract.Value == Context.Sender,
                 "Only consensus contract can update miners count.");
             State.MinersCount.Value = input.MinersCount;
+            
+            Context.LogDebug(() => "Left UpdateMinersCount method.");
+
             return new Empty();
         }
 
