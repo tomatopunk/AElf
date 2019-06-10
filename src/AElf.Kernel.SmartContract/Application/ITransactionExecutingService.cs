@@ -97,9 +97,11 @@ namespace AElf.Kernel.SmartContract.Application
         private async Task<TransactionTrace> ExecuteOneAsync(int depth, IChainContext chainContext,
             Transaction transaction, Timestamp currentBlockTime, CancellationToken cancellationToken)
         {
-            Logger.LogDebug($"execute test1: {transaction.MethodName}");
+            Logger.LogDebug($"[ExecuteOneAsync]: Entered execution of {transaction.MethodName}");
             if (cancellationToken.IsCancellationRequested)
             {
+                Logger.LogDebug($"[ExecuteOneAsync]: Cancelled execution of {transaction.MethodName}");
+
                 return new TransactionTrace
                 {
                     TransactionId = transaction.GetHash(),
@@ -112,10 +114,14 @@ namespace AElf.Kernel.SmartContract.Application
                 throw new Exception($"error tx: {transaction}");
             }
 
+            Logger.LogDebug($"[ExecuteOneAsync]: Initializing transaction trace of {transaction.MethodName}");
+
             var trace = new TransactionTrace
             {
                 TransactionId = transaction.GetHash()
             };
+
+            Logger.LogDebug($"[ExecuteOneAsync]: Initializing transaction context of {transaction.MethodName}");
 
             var txCtxt = new TransactionContext
             {
@@ -163,16 +169,25 @@ namespace AElf.Kernel.SmartContract.Application
 
                 #endregion
 
+                Logger.LogDebug($"[ExecuteOneAsync]: Applying transaction context");
+
                 await executive.ApplyAsync(txCtxt);
 
                 if (txCtxt.Trace.IsSuccessful() && txCtxt.Trace.InlineTransactions.Count > 0)
                 {
+                    Logger.LogDebug($"[ExecuteOneAsync]: Start to execute inline txs");
+
                     internalStateCache.Update(txCtxt.Trace.GetFlattenedWrite()
                         .Select(x => new KeyValuePair<string, byte[]>(x.Key, x.Value.ToByteArray())));
                     foreach (var inlineTx in txCtxt.Trace.InlineTransactions)
                     {
+                        Logger.LogDebug($"[ExecuteOneAsync]: About to execute inline tx {inlineTx.MethodName}");
+
                         var inlineTrace = await ExecuteOneAsync(depth + 1, internalChainContext, inlineTx,
                             currentBlockTime, cancellationToken);
+                        
+                        Logger.LogDebug($"[ExecuteOneAsync]: Adding traces of inline tx {inlineTx.MethodName}");
+
                         trace.InlineTraces.Add(inlineTrace);
                         if (!inlineTrace.IsSuccessful())
                         {
@@ -193,10 +208,12 @@ namespace AElf.Kernel.SmartContract.Application
             }
             finally
             {
+                Logger.LogDebug($"[ExecuteOneAsync]: Putting executive.");
+
                 await _smartContractExecutiveService.PutExecutiveAsync(transaction.To, executive);
             }
             
-            Logger.LogDebug($"execute test2: {transaction.MethodName}");
+            Logger.LogDebug($"[ExecuteOneAsync]: Finished execution of {transaction.MethodName}");
 
             return trace;
         }
