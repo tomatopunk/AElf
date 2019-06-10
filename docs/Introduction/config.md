@@ -41,7 +41,7 @@ That all you need to modify to get the node working.
   "Kestrel": {
     "EndPoints": {
       "Http": {
-        "Url": "http://*:1728/"
+        "Url": "http://*:8000/"
       }
     }
   }
@@ -55,7 +55,7 @@ That all you need to modify to get the node working.
 ```json
   "Network": {
     "BootNodes": [],
-    "ListeningPort": 7001
+    "ListeningPort": 6800
   },
 ```
   
