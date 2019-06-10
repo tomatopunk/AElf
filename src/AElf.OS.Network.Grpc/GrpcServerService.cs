@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using AElf.Cryptography;
@@ -234,8 +235,17 @@ namespace AElf.OS.Network.Grpc
             Logger.LogDebug($"Peer {context.GetPeerInfo()} requested {request.Count} blocks from {request.PreviousBlockHash}.");
 
             var blockList = new BlockList();
-            
-            var blocks = await _blockchainService.GetBlocksWithTransactions(request.PreviousBlockHash, request.Count);
+
+            List<BlockWithTransactions> blocks = null;
+            try
+            {
+                blocks = await _blockchainService.GetBlocksWithTransactions(request.PreviousBlockHash, request.Count);
+            }
+            catch (Exception e)
+            {
+                Logger.LogDebug(e, $"GetBlocksWithTransactions filed: {context.GetPeerInfo()}");
+                throw;
+            }
 
             if (blocks == null)
                 return blockList;
