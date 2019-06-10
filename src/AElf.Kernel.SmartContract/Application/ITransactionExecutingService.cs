@@ -97,6 +97,7 @@ namespace AElf.Kernel.SmartContract.Application
         private async Task<TransactionTrace> ExecuteOneAsync(int depth, IChainContext chainContext,
             Transaction transaction, Timestamp currentBlockTime, CancellationToken cancellationToken)
         {
+            Logger.LogDebug($"execute test1: {transaction.MethodName}");
             if (cancellationToken.IsCancellationRequested)
             {
                 return new TransactionTrace
@@ -194,6 +195,8 @@ namespace AElf.Kernel.SmartContract.Application
             {
                 await _smartContractExecutiveService.PutExecutiveAsync(transaction.To, executive);
             }
+            
+            Logger.LogDebug($"execute test2: {transaction.MethodName}");
 
             return trace;
         }
