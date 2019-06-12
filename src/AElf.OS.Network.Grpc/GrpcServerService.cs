@@ -32,15 +32,18 @@ namespace AElf.OS.Network.Grpc
         private readonly IPeerPool _peerPool;
         private readonly IBlockchainService _blockchainService;
         private readonly IAccountService _accountService;
+        private readonly ITaskQueueManager _taskQueueManager;
 
         public ILocalEventBus EventBus { get; set; }
         public ILogger<GrpcServerService> Logger { get; set; }
 
-        public GrpcServerService(IPeerPool peerPool, IBlockchainService blockchainService, IAccountService accountService)
+        public GrpcServerService(IPeerPool peerPool, IBlockchainService blockchainService, IAccountService accountService,
+            ITaskQueueManager taskQueueManager)
         {
             _peerPool = peerPool;
             _blockchainService = blockchainService;
             _accountService = accountService;
+            _taskQueueManager = taskQueueManager;
 
             EventBus = NullLocalEventBus.Instance;
             Logger = NullLogger<GrpcServerService>.Instance;
@@ -180,7 +183,14 @@ namespace AElf.OS.Network.Grpc
             if (tx.RefBlockNumber > chain.LongestChainHeight + NetworkConstants.DefaultMinBlockGapBeforeSync)
                 return new VoidReply();
             
-            _ = EventBus.PublishAsync(new TransactionsReceivedEvent { Transactions = new List<Transaction> {tx} });
+            _taskQueueManager.Enqueue(async () =>
+            {
+                await EventBus.PublishAsync(new TransactionsReceivedEvent
+                {
+                    Transactions = new List<Transaction> {tx}
+                });
+                
+            }, NetworkConstants.ReceivedTransactionsQueueName);
 
             return new VoidReply();
         }
@@ -197,18 +207,22 @@ namespace AElf.OS.Network.Grpc
             }
             
             Logger.LogDebug($"Received announce {an.BlockHash} from {context.GetPeerInfo()}.");
+            
+            _taskQueueManager.Enqueue(async () =>
+            {
+                var peerInPool = _peerPool.FindPeerByPublicKey(context.GetPublicKey());
+                peerInPool?.HandlerRemoteAnnounce(an);
 
-            var peerInPool = _peerPool.FindPeerByPublicKey(context.GetPublicKey());
-            peerInPool?.HandlerRemoteAnnounce(an);
-
-            _ = EventBus.PublishAsync(new AnnouncementReceivedEventData(an, context.GetPublicKey()));
+                await EventBus.PublishAsync(new AnnouncementReceivedEventData(an, context.GetPublicKey()));
+                
+            }, NetworkConstants.ReceivedAnnouncementsQueueName);
             
             return Task.FromResult(new VoidReply());
         }
 
         /// <summary>
         /// This method returns a block. The parameter is a <see cref="BlockRequest"/> object, if the value
-        /// of <see cref="BlockRequest.Hash"/> is not null, the request is by ID, otherwise it will be
+        /// of <see cref="Hash"/> is not null, the request is by ID, otherwise it will be
         /// by height.
         /// </summary>
         public override async Task<BlockReply> RequestBlock(BlockRequest request, ServerCallContext context)
