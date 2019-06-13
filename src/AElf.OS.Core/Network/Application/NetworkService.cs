@@ -76,10 +76,10 @@ namespace AElf.OS.Network.Application
             
             foreach (var peer in _peerPool.GetPeers())
             {
-//                _queueManager.Enqueue(async () =>
-//                {
-//                    await peer.SendTransactionAsync(tx);
-//                }, NetworkConstants.TransactionQueueName);
+                _queueManager.Enqueue(async () =>
+                {
+                    await peer.SendTransactionAsync(tx);
+                }, NetworkConstants.TransactionQueueName);
             }
             
             return successfulBcasts;

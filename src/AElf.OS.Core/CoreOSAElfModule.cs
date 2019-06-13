@@ -24,9 +24,11 @@ namespace AElf.OS
         public override void OnPreApplicationInitialization(ApplicationInitializationContext context)
         {
             var taskQueueManager = context.ServiceProvider.GetService<ITaskQueueManager>();
+            
+            var networkOptions = context.ServiceProvider.GetService<IOptionsSnapshot<NetworkOptions>>().Value;
 
-            taskQueueManager.CreateQueue(NetworkConstants.AnnouncementQueueName, NetworkConstants.DefaultAnnouncementQueueWorkerCount);
-            taskQueueManager.CreateQueue(NetworkConstants.TransactionQueueName, NetworkConstants.DefaultTransactionQueueWorkerCount);
+            taskQueueManager.CreateQueue(NetworkConstants.AnnouncementQueueName, networkOptions.AnnouncementQueueWorkerCount);
+            taskQueueManager.CreateQueue(NetworkConstants.TransactionQueueName, networkOptions.TransactionQueueWorkerCount);
             
             taskQueueManager.CreateQueue(NetworkConstants.ReceivedAnnouncementsQueueName);
             taskQueueManager.CreateQueue(NetworkConstants.ReceivedTransactionsQueueName);
