@@ -76,9 +76,14 @@ namespace AElf.OS.Network.Application
             
             foreach (var peer in _peerPool.GetPeers())
             {
+                if (peer.KnowsTransaction(tx))
+                    continue;
+                
                 _queueManager.Enqueue(async () =>
                 {
                     await peer.SendTransactionAsync(tx);
+                    
+                    peer.AddKnownTransaction(tx);
                 }, NetworkConstants.TransactionQueueName);
             }
             
