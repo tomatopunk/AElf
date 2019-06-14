@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
-
 using AElf.Kernel;
 using AElf.OS.Network.Infrastructure;
 using AElf.Types;
@@ -18,6 +17,5 @@ namespace AElf.OS.Network.Application
         Task<int> BroadcastTransactionAsync(Transaction tx);
         Task<List<BlockWithTransactions>> GetBlocksAsync(Hash previousBlock, int count, string peerPubKey = null);
         Task<long> GetBestChainHeightAsync(string peerPubKey = null);
-        
     }
 }
