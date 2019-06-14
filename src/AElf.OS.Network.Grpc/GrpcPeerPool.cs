@@ -69,14 +69,15 @@ namespace AElf.OS.Network.Grpc
                 new ChannelOption(ChannelOptions.MaxSendMessageLength, GrpcConstants.DefaultMaxSendMessageLength),
                 new ChannelOption(ChannelOptions.MaxReceiveMessageLength, GrpcConstants.DefaultMaxReceiveMessageLength)
             });
-            
+
             var client = new PeerService.PeerServiceClient(channel
                 .Intercept(metadata =>
-                    {
-                        metadata.Add(GrpcConstants.PubkeyMetadataKey, AsyncHelper.RunSync(() => _accountService.GetPublicKeyAsync()).ToHex());
-                        return metadata;
-                    })
-                .Intercept(new RetryInterceptor()));
+                {
+                    metadata.Add(GrpcConstants.PubkeyMetadataKey,
+                        AsyncHelper.RunSync(() => _accountService.GetPublicKeyAsync()).ToHex());
+                    return metadata;
+                })
+            );
             
             var hsk = await BuildHandshakeAsync();
 
