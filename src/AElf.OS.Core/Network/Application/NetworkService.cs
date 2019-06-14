@@ -84,23 +84,23 @@ namespace AElf.OS.Network.Application
         {
             var broadcastPeersCount = 0;
 
-            foreach (var peer in _peerPool.GetPeers().Take(1))
+            foreach (var peer in _peerPool.GetPeers())
             {
                 broadcastPeersCount++;
-//                var beforeEnqueue = TimestampHelper.GetUtcNow();
-//                _queueManager.Enqueue(async () =>
-//                {
-//                    var execTime = TimestampHelper.GetUtcNow();
-//                    if (execTime > beforeEnqueue +
-//                        TimestampHelper.DurationFromMilliseconds(TransactionQueueJobTimeout))
-//                        return;
-//
-//                    if (peer.KnowsTransaction(tx))
-//                        return;
-//
-//                    peer.AddKnownTransaction(tx);
-//                    await peer.SendTransactionAsync(tx);
-//                }, NetworkConstants.TransactionQueueName);
+                var beforeEnqueue = TimestampHelper.GetUtcNow();
+                _queueManager.Enqueue(async () =>
+                {
+                    var execTime = TimestampHelper.GetUtcNow();
+                    if (execTime > beforeEnqueue +
+                        TimestampHelper.DurationFromMilliseconds(TransactionQueueJobTimeout))
+                        return;
+
+                    if (peer.KnowsTransaction(tx))
+                        return;
+
+                    peer.AddKnownTransaction(tx);
+                    await peer.SendTransactionAsync(tx);
+                }, NetworkConstants.TransactionQueueName);
             }
 
             return broadcastPeersCount;
