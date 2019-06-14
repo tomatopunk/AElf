@@ -74,7 +74,7 @@ namespace AElf.OS.Network.Application
         {
             int successfulBcasts = 0;
             
-            foreach (var peer in _peerPool.GetPeers().Take(4))
+            foreach (var peer in _peerPool.GetPeers().Take(1))
             {
                 _queueManager.Enqueue(async () =>
                 {
