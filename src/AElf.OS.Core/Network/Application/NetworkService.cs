@@ -49,8 +49,10 @@ namespace AElf.OS.Network.Application
             return _peerPool.GetPeers(true).ToList();
         }
 
-        public async Task BroadcastAnnounceAsync(BlockHeader blockHeader, bool hasFork)
+        public async Task<int> BroadcastAnnounceAsync(BlockHeader blockHeader, bool hasFork)
         {
+            var broadcastPeersCount = 0;
+
             var announce = new PeerNewBlockAnnouncement
             {
                 BlockHash = blockHeader.GetHash(),
@@ -62,6 +64,7 @@ namespace AElf.OS.Network.Application
 
             foreach (var peer in _peerPool.GetPeers())
             {
+                broadcastPeersCount++;
                 var beforeEnqueue = TimestampHelper.GetUtcNow();
                 _queueManager.Enqueue(async () =>
                 {
@@ -73,12 +76,17 @@ namespace AElf.OS.Network.Application
                     await peer.AnnounceAsync(announce);
                 }, NetworkConstants.AnnouncementQueueName);
             }
+
+            return broadcastPeersCount;
         }
 
-        public async Task BroadcastTransactionAsync(Transaction tx)
+        public async Task<int> BroadcastTransactionAsync(Transaction tx)
         {
+            var broadcastPeersCount = 0;
+
             foreach (var peer in _peerPool.GetPeers().Take(1))
             {
+                broadcastPeersCount++;
                 var beforeEnqueue = TimestampHelper.GetUtcNow();
                 _queueManager.Enqueue(async () =>
                 {
@@ -94,6 +102,8 @@ namespace AElf.OS.Network.Application
                     await peer.SendTransactionAsync(tx);
                 }, NetworkConstants.TransactionQueueName);
             }
+
+            return broadcastPeersCount;
         }
 
         public async Task<List<BlockWithTransactions>> GetBlocksAsync(Hash previousBlock, int count,

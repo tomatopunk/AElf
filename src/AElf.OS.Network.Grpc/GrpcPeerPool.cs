@@ -72,12 +72,11 @@ namespace AElf.OS.Network.Grpc
 
             var client = new PeerService.PeerServiceClient(channel
                 .Intercept(metadata =>
-                {
-                    metadata.Add(GrpcConstants.PubkeyMetadataKey,
-                        AsyncHelper.RunSync(() => _accountService.GetPublicKeyAsync()).ToHex());
-                    return metadata;
-                })
-            );
+                    {
+                        metadata.Add(GrpcConstants.PubkeyMetadataKey, AsyncHelper.RunSync(() => _accountService.GetPublicKeyAsync()).ToHex());
+                        return metadata;
+                    })
+                .Intercept(new RetryInterceptor()));
             
             var hsk = await BuildHandshakeAsync();
 
