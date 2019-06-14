@@ -178,9 +178,6 @@ namespace AElf.OS.Network.Grpc
         {
             var chain = await _blockchainService.GetChainAsync();
             
-//            if (NetworkOptions.ListeningPort == 6801)
-//                return new VoidReply();
-            
             // if this transaction's ref block is a lot higher than our chain 
             // then don't participate in p2p network
             if (tx.RefBlockNumber > chain.LongestChainHeight + NetworkConstants.DefaultMinBlockGapBeforeSync)

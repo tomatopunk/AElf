@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using AElf.Kernel;
 using AElf.OS.Network.Infrastructure;
 using AElf.Types;
+using Google.Protobuf.WellKnownTypes;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Volo.Abp.DependencyInjection;
@@ -13,6 +14,9 @@ namespace AElf.OS.Network.Application
 {
     public class NetworkService : INetworkService, ISingletonDependency
     {
+        private const int AnnouncementQueueJobTimeout = 500; 
+        private const int TransactionQueueJobTimeout = 500; 
+            
         private readonly IPeerPool _peerPool;
         private readonly ITaskQueueManager _queueManager;
 
@@ -61,8 +65,16 @@ namespace AElf.OS.Network.Application
 
             foreach (var peer in _peerPool.GetPeers())
             {
+                var beforeEnqueue = TimestampHelper.GetUtcNow();
+                
                 _queueManager.Enqueue(async () =>
                 {
+                    var execTime = TimestampHelper.GetUtcNow();
+
+                    if (execTime > beforeEnqueue +
+                        TimestampHelper.DurationFromMilliseconds(TransactionQueueJobTimeout))
+                        return;
+                    
                     await peer.AnnounceAsync(announce);
                 }, NetworkConstants.AnnouncementQueueName);
             }
@@ -76,8 +88,16 @@ namespace AElf.OS.Network.Application
             
             foreach (var peer in _peerPool.GetPeers().Take(4))
             {
+                var beforeEnqueue = TimestampHelper.GetUtcNow();
+                
                 _queueManager.Enqueue(async () =>
                 {
+                    var execTime = TimestampHelper.GetUtcNow();
+
+                    if (execTime > beforeEnqueue +
+                        TimestampHelper.DurationFromMilliseconds(TransactionQueueJobTimeout))
+                        return;
+                
                     if (peer.KnowsTransaction(tx))
                         return;
                     
