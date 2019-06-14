@@ -14,12 +14,14 @@ using AElf.WebApp.Application.Chain.Dto;
 using Google.Protobuf;
 using Google.Protobuf.Reflection;
 using Google.Protobuf.WellKnownTypes;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Newtonsoft.Json;
 using Volo.Abp;
 using Volo.Abp.Application.Services;
 using Volo.Abp.EventBus.Local;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace AElf.WebApp.Application.Chain
 {
@@ -660,11 +662,11 @@ namespace AElf.WebApp.Application.Chain
                     throw new UserFriendlyException(Error.Message[Error.InvalidParams], Error.InvalidParams.ToString());
                 }
 
-                if (!transaction.VerifySignature())
-                {
-                    throw new UserFriendlyException(Error.Message[Error.InvalidTransaction],
-                        Error.InvalidTransaction.ToString());
-                }
+//                if (!transaction.VerifySignature())
+//                {
+//                    throw new UserFriendlyException(Error.Message[Error.InvalidTransaction],
+//                        Error.InvalidTransaction.ToString());
+//                }
 
                 transactions.Add(transaction);
                 txIds[i] = transaction.GetHash().ToHex();
@@ -724,9 +726,16 @@ namespace AElf.WebApp.Application.Chain
             return chainContext;
         }
 
+        private readonly MemoryCache _cache = new MemoryCache(new MemoryCacheOptions());
+
         private async Task<MethodDescriptor> GetContractMethodDescriptorAsync(Address contractAddress,
             string methodName)
         {
+            var key = contractAddress.GetFormatted() + methodName;
+
+            if (_cache.TryGetValue(key, out var methodDescriptor))
+                return methodDescriptor as MethodDescriptor;
+
             IEnumerable<FileDescriptor> fileDescriptors;
             try
             {
@@ -742,6 +751,7 @@ namespace AElf.WebApp.Application.Chain
             {
                 var method = fileDescriptor.Services.Select(s => s.FindMethodByName(methodName)).FirstOrDefault();
                 if (method == null) continue;
+                _cache.Set(key, method, TimeSpan.FromHours(2));
                 return method;
             }
 
