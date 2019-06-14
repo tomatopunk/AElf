@@ -182,6 +182,8 @@ namespace AElf.OS.Network.Grpc
             // then don't participate in p2p network
             if (tx.RefBlockNumber > chain.LongestChainHeight + NetworkConstants.DefaultMinBlockGapBeforeSync)
                 return new VoidReply();
+
+            //await Task.Delay(100);
             
             _taskQueueManager.Enqueue(async () =>
             {
@@ -190,7 +192,8 @@ namespace AElf.OS.Network.Grpc
                 
                 await EventBus.PublishAsync(new TransactionsReceivedEvent
                 {
-                    Transactions = new List<Transaction> {tx}
+                    Transactions = new List<Transaction> {tx}, 
+                    Sender = context.GetPeerInfo()
                 });
                 
             }, NetworkConstants.ReceivedTransactionsQueueName);

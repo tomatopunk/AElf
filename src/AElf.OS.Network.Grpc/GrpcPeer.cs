@@ -16,7 +16,7 @@ namespace AElf.OS.Network.Grpc
 {
     public class GrpcPeer : IPeer
     {
-        private const int MaxRecentTransactionCount = 200;
+        private const int MaxRecentTransactionCount = 500;
         private const int MaxMetricsPerMethod = 100;
         
         private const int AnnouncementTimeout = 300;

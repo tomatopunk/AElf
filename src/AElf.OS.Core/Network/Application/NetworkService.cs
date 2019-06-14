@@ -74,16 +74,16 @@ namespace AElf.OS.Network.Application
         {
             int successfulBcasts = 0;
             
-            foreach (var peer in _peerPool.GetPeers())
+            foreach (var peer in _peerPool.GetPeers().Take(4))
             {
-                if (peer.KnowsTransaction(tx))
-                    continue;
-                
                 _queueManager.Enqueue(async () =>
                 {
-                    await peer.SendTransactionAsync(tx);
+                    if (peer.KnowsTransaction(tx))
+                        return;
                     
                     peer.AddKnownTransaction(tx);
+                    await peer.SendTransactionAsync(tx);
+                    
                 }, NetworkConstants.TransactionQueueName);
             }
             
