@@ -75,7 +75,8 @@ namespace AElf.OS.Network.Grpc
                     {
                         metadata.Add(GrpcConstants.PubkeyMetadataKey, AsyncHelper.RunSync(() => _accountService.GetPublicKeyAsync()).ToHex());
                         return metadata;
-                    }));
+                    })
+                .Intercept(new RetryInterceptor()));
             
             var hsk = await BuildHandshakeAsync();
 
@@ -257,7 +258,7 @@ namespace AElf.OS.Network.Grpc
                     {
                         await removed.SendDisconnectAsync();
                     }
-                    catch (RpcException e)
+                    catch (AggregateException e)
                     {
                         Logger.LogError(e, $"Error sending disconnect to peer {removed}.");
                     }

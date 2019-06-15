@@ -204,7 +204,7 @@ namespace AElf.OS.Network.Grpc
             }
             catch (AggregateException e)
             {
-                HandleFailure(e, requestParams.ErrorMessage);
+                HandleFailure(e.Flatten(), requestParams.ErrorMessage);
             }
             finally
             {

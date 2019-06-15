@@ -117,7 +117,7 @@ namespace AElf.OS.Network.Grpc
             {
                 metadata.Add(GrpcConstants.PubkeyMetadataKey, AsyncHelper.RunSync(() => _accountService.GetPublicKeyAsync()).ToHex());
                 return metadata;
-            }));
+            }).Intercept(new RetryInterceptor()));
 
             if (channel.State != ChannelState.Ready)
             {

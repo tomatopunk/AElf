@@ -94,7 +94,7 @@ namespace AElf.OS.Network.Grpc
                     {
                         await peer.SendDisconnectAsync();
                     }
-                    catch (RpcException e)
+                    catch (AggregateException e)
                     {
                         Logger.LogError(e, $"Error sending disconnect {peer}.");
                     }
