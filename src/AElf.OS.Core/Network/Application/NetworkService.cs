@@ -88,18 +88,48 @@ namespace AElf.OS.Network.Application
 
         public async Task<int> BroadcastTransactionAsync(Transaction tx)
         {
+            Logger.LogDebug($"begin Network Broadcast Transaction");
             var broadcastPeersCount = 0;
 
-            Task.Run(async () => 
+            foreach (var peer in _peerPool.GetPeers())
             {
-                foreach (var peer in _peerPool.GetPeers())
+                broadcastPeersCount++;
+                var beforeEnqueue = TimestampHelper.GetUtcNow();
+                _queueManager.Enqueue(async () =>
                 {
+//                    var execTime = TimestampHelper.GetUtcNow();
+//                    if (execTime > beforeEnqueue +
+//                        TimestampHelper.DurationFromMilliseconds(TransactionQueueJobTimeout))
+//                        return;
+
+//                    if (peer.KnowsTransaction(tx))
+//                        return;
+//
+//                    peer.AddKnownTransaction(tx);
                     await peer.SendTransactionAsync(tx);
-                }
-            });
+                }, NetworkConstants.TransactionQueueName);
+            }
             
+            Logger.LogDebug($"finish Network Broadcast Transaction");
+
             return broadcastPeersCount;
         }
+        
+//        public async Task<int> BroadcastTransactionAsync(Transaction tx)
+//        {
+//            var broadcastPeersCount = 0;
+//
+//            Task.Run(async () => 
+//            {
+//                foreach (var peer in _peerPool.GetPeers())
+//                {
+//                    await peer.SendTransactionAsync(tx);
+//                }
+//            });
+//            
+//
+//            return broadcastPeersCount;
+//        }
 
         public async Task<List<BlockWithTransactions>> GetBlocksAsync(Hash previousBlock, int count,
             string peerPubKey = null)
