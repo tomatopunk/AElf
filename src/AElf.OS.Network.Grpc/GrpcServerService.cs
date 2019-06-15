@@ -188,7 +188,6 @@ namespace AElf.OS.Network.Grpc
             _taskQueueManager.Enqueue(async () =>
             {
                 var peerInPool = _peerPool.FindPeerByPublicKey(context.GetPublicKey());
-                peerInPool?.AddKnownTransaction(tx);
                 
                 await EventBus.PublishAsync(new TransactionsReceivedEvent
                 {
