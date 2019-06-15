@@ -96,7 +96,7 @@ namespace AElf.OS.Network.Grpc
                 };
                 connectReply = await client.ConnectAsync(hsk, data);
             }
-            catch (RpcException e)
+            catch (AggregateException e)
             {
                 await channel.ShutdownAsync();
                 Logger.LogError(e, $"Could not connect to {ipAddress}.");
