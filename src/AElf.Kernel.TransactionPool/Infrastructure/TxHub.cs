@@ -195,6 +195,8 @@ namespace AElf.Kernel.TransactionPool.Infrastructure
         {
             foreach (var transaction in eventData.Transactions)
             {
+                Logger.LogDebug($"Handle txhub Received Transaction");
+                
                 var receipt = new TransactionReceipt(transaction);
                 if (_allTransactions.ContainsKey(receipt.TransactionId))
                 {
@@ -247,6 +249,8 @@ namespace AElf.Kernel.TransactionPool.Infrastructure
                         Transaction = transaction
                     });
                 }
+                
+                Logger.LogDebug($"finish txhub Received Transaction");
             }
         }
 

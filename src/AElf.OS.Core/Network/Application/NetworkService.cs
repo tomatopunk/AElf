@@ -88,6 +88,7 @@ namespace AElf.OS.Network.Application
 
         public async Task<int> BroadcastTransactionAsync(Transaction tx)
         {
+            Logger.LogDebug($"begin Network Broadcast Transaction");
             var broadcastPeersCount = 0;
 
             foreach (var peer in _peerPool.GetPeers())
@@ -108,6 +109,8 @@ namespace AElf.OS.Network.Application
                     await peer.SendTransactionAsync(tx);
                 }, NetworkConstants.TransactionQueueName);
             }
+            
+            Logger.LogDebug($"finish Network Broadcast Transaction");
 
             return broadcastPeersCount;
         }
