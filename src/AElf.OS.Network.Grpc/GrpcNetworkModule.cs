@@ -16,7 +16,6 @@ namespace AElf.OS.Network.Grpc
             context.Services.AddSingleton<PeerService.PeerServiceBase, GrpcServerService>();
             
             context.Services.AddSingleton<AuthInterceptor>();
-            context.Services.AddSingleton<RetryInterceptor>();
         }
     }
 }

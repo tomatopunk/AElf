@@ -16,6 +16,8 @@ namespace AElf.OS.Network.Application
         private const int AnnouncementQueueJobTimeout = 500;
         private const int TransactionQueueJobTimeout = 500;
 
+        private const int AnnounceBroadcastTimeLimit = 5_000;
+
         private readonly IPeerPool _peerPool;
         private readonly ITaskQueueManager _queueManager;
 
@@ -51,6 +53,10 @@ namespace AElf.OS.Network.Application
 
         public async Task<int> BroadcastAnnounceAsync(BlockHeader blockHeader, bool hasFork)
         {
+            if (blockHeader.Time + TimestampHelper.DurationFromMilliseconds(AnnounceBroadcastTimeLimit) <
+                TimestampHelper.GetUtcNow())
+                return 0;
+            
             var broadcastPeersCount = 0;
 
             var announce = new PeerNewBlockAnnouncement
