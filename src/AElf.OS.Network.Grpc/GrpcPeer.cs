@@ -202,9 +202,9 @@ namespace AElf.OS.Network.Grpc
                 
                 return response;
             }
-            catch (AggregateException e)
+            catch (RpcException e)
             {
-                HandleFailure(e.Flatten(), requestParams.ErrorMessage);
+                HandleFailure(e, requestParams.ErrorMessage);
             }
             finally
             {
@@ -238,7 +238,7 @@ namespace AElf.OS.Network.Grpc
         /// This method handles the case where the peer is potentially down. If the Rpc call
         /// put the channel in TransientFailure or Connecting, we give the connection a certain time to recover.
         /// </summary>
-        private void HandleFailure(AggregateException exceptions, string errorMessage)
+        private void HandleFailure(RpcException exceptions, string errorMessage)
         {
             // If channel has been shutdown (unrecoverable state) remove it.
             if (_channel.State == ChannelState.Shutdown)

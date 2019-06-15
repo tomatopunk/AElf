@@ -75,8 +75,7 @@ namespace AElf.OS.Network.Grpc
                     {
                         metadata.Add(GrpcConstants.PubkeyMetadataKey, AsyncHelper.RunSync(() => _accountService.GetPublicKeyAsync()).ToHex());
                         return metadata;
-                    })
-                .Intercept(new RetryInterceptor()));
+                    }));
             
             var hsk = await BuildHandshakeAsync();
 
@@ -97,7 +96,7 @@ namespace AElf.OS.Network.Grpc
                 };
                 connectReply = await client.ConnectAsync(hsk, data);
             }
-            catch (AggregateException e)
+            catch (RpcException e)
             {
                 await channel.ShutdownAsync();
                 Logger.LogError(e, $"Could not connect to {ipAddress}.");
