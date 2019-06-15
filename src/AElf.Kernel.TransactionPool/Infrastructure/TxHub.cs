@@ -252,11 +252,14 @@ namespace AElf.Kernel.TransactionPool.Infrastructure
 
         public async Task HandleBlockAcceptedAsync(BlockAcceptedEvent eventData)
         {
+            Logger.LogDebug($"Handle block accept: BlockHeight: {eventData.BlockHeader.Height}, BlockHash: {eventData.BlockHeader.GetHash()}");
             var block = await _blockchainService.GetBlockByHashAsync(eventData.BlockHeader.GetHash());
             foreach (var txId in block.Body.Transactions)
             {
                 _allTransactions.TryRemove(txId, out _);
             }
+            Logger.LogDebug($"Finish block accept: BlockHeight: {eventData.BlockHeader.Height}, BlockHash: {eventData.BlockHeader.GetHash()}");
+
         }
 
         public async Task HandleBestChainFoundAsync(BestChainFoundEventData eventData)
@@ -264,8 +267,11 @@ namespace AElf.Kernel.TransactionPool.Infrastructure
             Logger.LogDebug($"Handle best chain found: BlockHeight: {eventData.BlockHeight}, BlockHash: {eventData.BlockHash}");
             
             var heights = _allTransactions.Select(kv => kv.Value.Transaction.RefBlockNumber).Distinct();
+            Logger.LogDebug($"best chain found: BlockHeight: 01");
             var prefixes = await GetPrefixesByHeightAsync(heights, eventData.BlockHash);
+            Logger.LogDebug($"best chain found: BlockHeight: 02");
             ResetCurrentCollections();
+            Logger.LogDebug($"best chain found: BlockHeight: 03");
             foreach (var kv in _allTransactions)
             {
                 var prefix = prefixes[kv.Value.Transaction.RefBlockNumber];
@@ -281,8 +287,11 @@ namespace AElf.Kernel.TransactionPool.Infrastructure
 
         public async Task HandleNewIrreversibleBlockFoundAsync(NewIrreversibleBlockFoundEvent eventData)
         {
+            Logger.LogDebug($"Handle lib found: BlockHeight: {eventData.BlockHeight}, BlockHash: {eventData.BlockHash}");
             CleanTransactions(_expiredByExpiryBlock, eventData.BlockHeight);
             CleanTransactions(_invalidatedByBlock, eventData.BlockHeight);
+            
+            Logger.LogDebug($"Finish lib found: BlockHeight: {eventData.BlockHeight}, BlockHash: {eventData.BlockHash}");
 
             await Task.CompletedTask;
         }
