@@ -9,7 +9,7 @@ namespace AElf.OS.Network.Grpc
         
         public const string GrpcGzipConst = "gzip";
         
-        public const int DefaultRequestTimeoutInMilliSeconds = 200;
+        public const int DefaultRequestTimeoutInMilliSeconds = 300;
         
         public const int DefaultMaxReceiveMessageLength = 100 * 1024 * 1024;
         public const int DefaultMaxSendMessageLength = 100 * 1024 * 1024;
