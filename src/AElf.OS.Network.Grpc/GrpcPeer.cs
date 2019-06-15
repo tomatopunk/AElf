@@ -163,26 +163,19 @@ namespace AElf.OS.Network.Grpc
             return RequestAsync(_client, c => c.AnnounceAsync(header, data), request);
         }
 
-        public async Task SendTransactionAsync(Transaction tx)
+        public Task SendTransactionAsync(Transaction tx)
         {
-//            GrpcRequest request = new GrpcRequest
-//            {
-//                ErrorMessage = $"Broadcast transaction for {tx.GetHash()} failed."
-//            };
-//            
-//            Metadata data = new Metadata
-//            {
-//                {GrpcConstants.TimeoutMetadataKey, TransactionBroadcastTimeout.ToString()}
-//            };
+            GrpcRequest request = new GrpcRequest
+            {
+                ErrorMessage = $"Broadcast transaction for {tx.GetHash()} failed."
+            };
             
-            try
+            Metadata data = new Metadata
             {
-                await _client.SendTransactionAsync(tx);
-            }
-            catch (AggregateException e)
-            {
-                HandleFailure(e.Flatten(), "Failed tx broadcast");
-            }
+                {GrpcConstants.TimeoutMetadataKey, TransactionBroadcastTimeout.ToString()}
+            };
+            
+            return RequestAsync(_client, c => c.SendTransactionAsync(tx, data), request);
         }
 
         private async Task<TResp> RequestAsync<TResp>(PeerService.PeerServiceClient client,
