@@ -97,10 +97,10 @@ namespace AElf.OS.Network.Application
                 var beforeEnqueue = TimestampHelper.GetUtcNow();
                 _queueManager.Enqueue(async () =>
                 {
-                    var execTime = TimestampHelper.GetUtcNow();
-                    if (execTime > beforeEnqueue +
-                        TimestampHelper.DurationFromMilliseconds(TransactionQueueJobTimeout))
-                        return;
+//                    var execTime = TimestampHelper.GetUtcNow();
+//                    if (execTime > beforeEnqueue +
+//                        TimestampHelper.DurationFromMilliseconds(TransactionQueueJobTimeout))
+//                        return;
 
                     if (peer.KnowsTransaction(tx))
                         return;
