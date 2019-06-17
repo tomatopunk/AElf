@@ -4,6 +4,7 @@ using AElf.Cryptography;
 using AElf.Kernel;
 using AElf.Kernel.Blockchain.Application;
 using AElf.Modularity;
+using AElf.OS.BlockSync;
 using AElf.OS.Consensus.DPos;
 using AElf.OS.Handlers;
 using AElf.OS.Network.Grpc;
@@ -68,8 +69,8 @@ namespace AElf.OS
         {
             var taskQueueManager = context.ServiceProvider.GetService<ITaskQueueManager>();
 
-            taskQueueManager.CreateQueue(OSConsts.BlockSyncAttachQueueName);
-            taskQueueManager.CreateQueue(OSConsts.BlockSyncQueueName);
+            taskQueueManager.CreateQueue(BlockSyncConstants.BlockSyncAttachQueueName);
+            taskQueueManager.CreateQueue(BlockSyncConstants.BlockSyncQueueName);
         }
     }
 }

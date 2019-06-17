@@ -82,7 +82,7 @@ namespace AElf.OS.BlockSync.Application
         [Fact]
         public async Task SyncBlock_QueueIsBusy()
         {
-            _blockSyncStateProvider.BlockSyncJobEnqueueTime = TimestampHelper.GetUtcNow().AddMilliseconds(-600);
+            _blockSyncStateProvider.BlockAttachAndExecutingEnqueueTime = TimestampHelper.GetUtcNow().AddMilliseconds(-600);
             
             var peerBlock = await _networkService.GetBlockByHashAsync(Hash.FromString("PeerBlock"));
 

@@ -59,12 +59,12 @@ namespace AElf.OS.BlockSync.Application
                 {
                     try
                     {
-                        _blockSyncStateProvider.BlockSyncJobEnqueueTime = enqueueTimestamp;
+                        _blockSyncStateProvider.BlockAttachAndExecutingEnqueueTime = enqueueTimestamp;
                         await _blockAttachService.AttachBlockAsync(block);
                     }
                     finally
                     {
-                        _blockSyncStateProvider.BlockSyncJobEnqueueTime = null;
+                        _blockSyncStateProvider.BlockAttachAndExecutingEnqueueTime = null;
                     }
                 },
                 KernelConstants.UpdateChainQueueName);
@@ -87,7 +87,7 @@ namespace AElf.OS.BlockSync.Application
                         _blockSyncStateProvider.BlockSyncAttachBlockEnqueueTime = null;
                     }
                 },
-                OSConsts.BlockSyncAttachQueueName);
+                BlockSyncConstants.BlockSyncAttachQueueName);
         }
     }
 }

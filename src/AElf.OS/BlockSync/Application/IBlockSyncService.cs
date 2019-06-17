@@ -12,12 +12,6 @@ namespace AElf.OS.BlockSync.Application
     public interface IBlockSyncService
     {
         Task SyncBlockAsync(Hash blockHash, long blockHeight, int batchRequestBlockCount, string suggestedPeerPubKey);
-
-        Timestamp GetBlockSyncAnnouncementEnqueueTime();
-
-        void SetBlockSyncAnnouncementEnqueueTime(Timestamp timestamp);
-        
-        Timestamp GetBlockSyncAttachBlockEnqueueTime();
     }
 
     public class BlockSyncService : IBlockSyncService
@@ -27,16 +21,16 @@ namespace AElf.OS.BlockSync.Application
         private readonly IBlockDownloadService _blockDownloadService;
         private readonly IAnnouncementCacheProvider _announcementCacheProvider;
         private readonly IBlockSyncStateProvider _blockSyncStateProvider;
+        private readonly ITaskQueueManager _taskQueueManager;
 
         public ILogger<BlockSyncService> Logger { get; set; }
-
-        private readonly Duration _blockSyncJobAgeLimit = new Duration {Nanos = 500_000_000};
 
         public BlockSyncService(IBlockchainService blockchainService,
             IBlockFetchService blockFetchService,
             IBlockDownloadService blockDownloadService,
             IAnnouncementCacheProvider announcementCacheProvider,
-            IBlockSyncStateProvider blockSyncStateProvider)
+            IBlockSyncStateProvider blockSyncStateProvider,
+            ITaskQueueManager taskQueueManager)
         {
             Logger = NullLogger<BlockSyncService>.Instance;
 
@@ -45,20 +39,74 @@ namespace AElf.OS.BlockSync.Application
             _blockDownloadService = blockDownloadService;
             _announcementCacheProvider = announcementCacheProvider;
             _blockSyncStateProvider = blockSyncStateProvider;
+            _taskQueueManager = taskQueueManager;
         }
 
         public async Task SyncBlockAsync(Hash blockHash, long blockHeight, int batchRequestBlockCount,
             string suggestedPeerPubKey)
         {
-            if (_blockSyncStateProvider.BlockSyncJobEnqueueTime != null
-                && TimestampHelper.GetUtcNow() >
-                _blockSyncStateProvider.BlockSyncJobEnqueueTime + _blockSyncJobAgeLimit)
+            Logger.LogTrace($"Receive announcement and sync block {{ hash: {blockHash}, height: {blockHeight} }} from {suggestedPeerPubKey}.");
+
+            if (_blockSyncStateProvider.BlockSyncAnnouncementEnqueueTime != null && TimestampHelper.GetUtcNow() >
+                _blockSyncStateProvider.BlockSyncAnnouncementEnqueueTime +
+                TimestampHelper.DurationFromMilliseconds(BlockSyncConstants.BlockSyncAnnouncementAgeLimit))
             {
                 Logger.LogWarning(
-                    $"Queue is too busy, block sync job enqueue timestamp: {_blockSyncStateProvider.BlockSyncJobEnqueueTime.ToDateTime()}");
+                    $"Block sync queue is too busy, enqueue timestamp: {_blockSyncStateProvider.BlockSyncAnnouncementEnqueueTime.ToDateTime()}");
                 return;
             }
-            
+
+            if (_blockSyncStateProvider.BlockSyncAttachBlockEnqueueTime != null && TimestampHelper.GetUtcNow() >
+                _blockSyncStateProvider.BlockSyncAttachBlockEnqueueTime +
+                TimestampHelper.DurationFromMilliseconds(BlockSyncConstants.BlockSyncAttachBlockAgeLimit))
+            {
+                Logger.LogWarning(
+                    $"Block sync attach queue is too busy, enqueue timestamp: {_blockSyncStateProvider.BlockSyncAttachBlockEnqueueTime.ToDateTime()}");
+                return;
+            }
+
+            var chain = await _blockchainService.GetChainAsync();
+            if (blockHeight <= chain.LastIrreversibleBlockHeight)
+            {
+                Logger.LogTrace($"Receive lower announcement {{ hash: {blockHash}, height: {blockHeight} }} " +
+                                $"form {suggestedPeerPubKey}, ignore.");
+                return;
+            }
+
+            EnqueueBlockSyncJob(blockHash, blockHeight, batchRequestBlockCount, suggestedPeerPubKey);
+        }
+        
+        private void EnqueueBlockSyncJob(Hash blockHash, long blockHeight, int batchRequestBlockCount,
+            string suggestedPeerPubKey)
+        {
+            var enqueueTimestamp = TimestampHelper.GetUtcNow();
+            _taskQueueManager.Enqueue(async () =>
+            {
+                try
+                {
+                    _blockSyncStateProvider.BlockSyncAnnouncementEnqueueTime = enqueueTimestamp;
+                    await ProcessBlockSyncAsync(blockHash, blockHeight,batchRequestBlockCount, suggestedPeerPubKey);
+                }
+                finally
+                {
+                    _blockSyncStateProvider.BlockSyncAnnouncementEnqueueTime = null;
+                }
+            }, BlockSyncConstants.BlockSyncQueueName);
+        }  
+        
+
+        private async Task ProcessBlockSyncAsync(Hash blockHash, long blockHeight, int batchRequestBlockCount,
+            string suggestedPeerPubKey)
+        {
+            if (_blockSyncStateProvider.BlockAttachAndExecutingEnqueueTime != null && TimestampHelper.GetUtcNow() >
+                _blockSyncStateProvider.BlockAttachAndExecutingEnqueueTime +
+                TimestampHelper.DurationFromMilliseconds(BlockSyncConstants.BlockSyncJobAgeLimit))
+            {
+                Logger.LogWarning(
+                    $"Queue is too busy, block sync job enqueue timestamp: {_blockSyncStateProvider.BlockAttachAndExecutingEnqueueTime.ToDateTime()}");
+                return;
+            }
+
             if (_announcementCacheProvider.ContainsAnnouncement(blockHash, blockHeight))
             {
                 Logger.LogWarning($"The block have been synchronized, block hash: {blockHash}");
@@ -97,21 +145,6 @@ namespace AElf.OS.BlockSync.Application
             }
 
             Logger.LogDebug($"Finishing block sync job, longest chain height: {chain.LongestChainHeight}");
-        }
-        
-        public Timestamp GetBlockSyncAnnouncementEnqueueTime()
-        {
-            return _blockSyncStateProvider.BlockSyncAnnouncementEnqueueTime?.Clone();
-        }
-        
-        public void SetBlockSyncAnnouncementEnqueueTime(Timestamp timestamp)
-        {
-            _blockSyncStateProvider.BlockSyncAnnouncementEnqueueTime = timestamp;
-        }
-        
-        public Timestamp GetBlockSyncAttachBlockEnqueueTime()
-        {
-            return _blockSyncStateProvider.BlockSyncAttachBlockEnqueueTime?.Clone();
         }
     }
 }

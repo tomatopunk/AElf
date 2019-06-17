@@ -5,7 +5,7 @@ namespace AElf.OS.BlockSync.Infrastructure
 {
     public interface IBlockSyncStateProvider
     {
-        Timestamp BlockSyncJobEnqueueTime { get; set; }
+        Timestamp BlockAttachAndExecutingEnqueueTime { get; set; }
         
         Timestamp BlockSyncAnnouncementEnqueueTime { get; set; }
         
@@ -14,7 +14,7 @@ namespace AElf.OS.BlockSync.Infrastructure
 
     public class BlockSyncStateProvider : IBlockSyncStateProvider, ISingletonDependency
     {
-        public Timestamp BlockSyncJobEnqueueTime { get; set; }
+        public Timestamp BlockAttachAndExecutingEnqueueTime { get; set; }
         
         public Timestamp BlockSyncAnnouncementEnqueueTime { get; set; }
         
