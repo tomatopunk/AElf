@@ -52,16 +52,7 @@ namespace AElf.OS.BlockSync.Application
                 TimestampHelper.DurationFromMilliseconds(BlockSyncConstants.BlockSyncAnnouncementAgeLimit))
             {
                 Logger.LogWarning(
-                    $"Block sync queue is too busy, enqueue timestamp: {_blockSyncStateProvider.BlockSyncAnnouncementEnqueueTime.ToDateTime()}");
-                return;
-            }
-
-            if (_blockSyncStateProvider.BlockSyncAttachBlockEnqueueTime != null && TimestampHelper.GetUtcNow() >
-                _blockSyncStateProvider.BlockSyncAttachBlockEnqueueTime +
-                TimestampHelper.DurationFromMilliseconds(BlockSyncConstants.BlockSyncAttachBlockAgeLimit))
-            {
-                Logger.LogWarning(
-                    $"Block sync attach queue is too busy, enqueue timestamp: {_blockSyncStateProvider.BlockSyncAttachBlockEnqueueTime.ToDateTime()}");
+                    $"Block sync announcement queue is too busy, enqueue timestamp: {_blockSyncStateProvider.BlockSyncAnnouncementEnqueueTime.ToDateTime()}");
                 return;
             }
 
@@ -98,12 +89,22 @@ namespace AElf.OS.BlockSync.Application
         private async Task ProcessBlockSyncAsync(Hash blockHash, long blockHeight, int batchRequestBlockCount,
             string suggestedPeerPubKey)
         {
+            
+            if (_blockSyncStateProvider.BlockSyncAttachBlockEnqueueTime != null && TimestampHelper.GetUtcNow() >
+                _blockSyncStateProvider.BlockSyncAttachBlockEnqueueTime +
+                TimestampHelper.DurationFromMilliseconds(BlockSyncConstants.BlockSyncAttachBlockAgeLimit))
+            {
+                Logger.LogWarning(
+                    $"Block sync attach queue is too busy, enqueue timestamp: {_blockSyncStateProvider.BlockSyncAttachBlockEnqueueTime.ToDateTime()}");
+                return;
+            }
+            
             if (_blockSyncStateProvider.BlockAttachAndExecutingEnqueueTime != null && TimestampHelper.GetUtcNow() >
                 _blockSyncStateProvider.BlockAttachAndExecutingEnqueueTime +
                 TimestampHelper.DurationFromMilliseconds(BlockSyncConstants.BlockSyncJobAgeLimit))
             {
                 Logger.LogWarning(
-                    $"Queue is too busy, block sync job enqueue timestamp: {_blockSyncStateProvider.BlockAttachAndExecutingEnqueueTime.ToDateTime()}");
+                    $"Block attach and executing queue is too busy, job enqueue timestamp: {_blockSyncStateProvider.BlockAttachAndExecutingEnqueueTime.ToDateTime()}");
                 return;
             }
 
