@@ -81,6 +81,7 @@ namespace AElf.OS.Consensus.DPos
 
         public async Task<IBlockIndex> FindLastLastIrreversibleBlockAsync()
         {
+            Logger.LogDebug("FindLastLastIrreversibleBlock start");
             var chain = await _blockchainService.GetChainAsync();
             
             var preLibHeight = chain.BestChainHeight - 10;
@@ -97,11 +98,18 @@ namespace AElf.OS.Consensus.DPos
             
             var sureAmount = pubkeyList.Count.Mul(2).Div(3) + 1;
             var hasBlock = _peerPool.RecentBlockHeightAndHashMappings.TryGetValue(preLibHeight, out var blockHash);
-            if (!hasBlock) return null;
+            if (!hasBlock)
+            {
+                Logger.LogDebug($"FindLastLastIrreversibleBlock end 1,height:{preLibHeight}");
+                return null;
+            }
 
             if (!_peerPool.PreLibBlockHeightAndHashMappings.TryGetValue(preLibHeight, out var preLibBlockInfo) ||
                 preLibBlockInfo.BlockHash != blockHash && preLibBlockInfo.PreLibCount < sureAmount)
+            {
+                Logger.LogDebug($"FindLastLastIrreversibleBlock end 2,height:{preLibHeight}");
                 return null;
+            }
 
             var peersHadBlockCount = 0;
             foreach (var peer in peers)
@@ -115,7 +123,11 @@ namespace AElf.OS.Consensus.DPos
             }
             if (pubkeyList.Contains(pubKey))
                 peersHadBlockCount++;
-            if (peersHadBlockCount < sureAmount) return null;
+            if (peersHadBlockCount < sureAmount)
+            {
+                Logger.LogDebug($"FindLastLastIrreversibleBlock end 3,height:{preLibHeight}");
+                return null;
+            }
 
             var peerPreLibConfirm = new PeerPreLibConfirm
             {
@@ -126,7 +138,11 @@ namespace AElf.OS.Consensus.DPos
 
             var tasks = peers.Select(peer => peer.PreLibConfirmAsync(peerPreLibConfirm)).ToList();
             await Task.WhenAll(tasks);
-            if (tasks.Count(t => t.IsCompleted && t.Result) + 1 < sureAmount) return null;
+            if (tasks.Count(t => t.IsCompleted && t.Result) + 1 < sureAmount)
+            {
+                Logger.LogDebug($"FindLastLastIrreversibleBlock end 4,height:{preLibHeight}");
+                return null;
+            }
             Logger.LogDebug($"LIB found in network layer: height {preLibHeight}");
             return new BlockIndex(blockHash, preLibHeight);
         }
