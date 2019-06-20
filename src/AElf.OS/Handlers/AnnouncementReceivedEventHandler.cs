@@ -64,21 +64,21 @@ namespace AElf.OS.Handlers
             if (pubkeyList.Contains(pubKey))
                 peersHadPreLibAmount++;
             var _ = _networkService.BroadcastPreLibAnnounceAsync(blockHeight, blockHash, peersHadPreLibAmount);
-            var preLibBlocks = _peerPool.PreLibBlockHeightAndHashMappings.OrderByDescending(p => p.Key);
-            foreach (var preLibBlock in preLibBlocks)
-            {
-                if (!_peerPool.RecentBlockHeightAndHashMappings.TryGetValue(preLibBlock.Key, out var preLibHash) ||
-                    preLibHash != preLibBlock.Value.BlockHash)
-                    continue;
-                peersHadPreLibAmount = peers.Count(p =>
-                    p.PreLibBlockHeightAndHashMappings.TryGetValue(preLibBlock.Key, out var preLibBlockInfo) &&
-                    preLibBlockInfo.BlockHash == preLibHash);
-                peersHadPreLibAmount++;
-                if(peersHadPreLibAmount < sureAmount)
-                    continue;
-                _ = _networkService.BroadcastPreLibAnnounceAsync(preLibBlock.Key, preLibHash, peersHadPreLibAmount);
-                break;
-            }
+//            var preLibBlocks = _peerPool.PreLibBlockHeightAndHashMappings.OrderByDescending(p => p.Key);
+//            foreach (var preLibBlock in preLibBlocks)
+//            {
+//                if (!_peerPool.RecentBlockHeightAndHashMappings.TryGetValue(preLibBlock.Key, out var preLibHash) ||
+//                    preLibHash != preLibBlock.Value.BlockHash)
+//                    continue;
+//                peersHadPreLibAmount = peers.Count(p =>
+//                    p.PreLibBlockHeightAndHashMappings.TryGetValue(preLibBlock.Key, out var preLibBlockInfo) &&
+//                    preLibBlockInfo.BlockHash == preLibHash);
+//                peersHadPreLibAmount++;
+//                if(peersHadPreLibAmount < sureAmount)
+//                    continue;
+//                _ = _networkService.BroadcastPreLibAnnounceAsync(preLibBlock.Key, preLibHash, peersHadPreLibAmount);
+//                break;
+//            }
         }
     }
 }

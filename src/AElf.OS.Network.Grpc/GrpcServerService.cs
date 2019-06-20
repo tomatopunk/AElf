@@ -1,13 +1,16 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using AElf.Cryptography;
 using AElf.Kernel;
 using AElf.Kernel.Account.Application;
 using AElf.Kernel.Blockchain.Application;
+using AElf.Kernel.Consensus.AEDPoS.Application;
 using AElf.Kernel.TransactionPool.Infrastructure;
 using AElf.OS.Network.Events;
 using AElf.OS.Network.Extensions;
 using AElf.OS.Network.Infrastructure;
+using AElf.Sdk.CSharp;
 using AElf.Types;
 using Google.Protobuf;
 using Grpc.Core;
@@ -32,15 +35,18 @@ namespace AElf.OS.Network.Grpc
         private readonly IPeerPool _peerPool;
         private readonly IBlockchainService _blockchainService;
         private readonly IAccountService _accountService;
+        private readonly IAEDPoSInformationProvider _dpoSInformationProvider;
 
         public ILocalEventBus EventBus { get; set; }
         public ILogger<GrpcServerService> Logger { get; set; }
 
-        public GrpcServerService(IPeerPool peerPool, IBlockchainService blockchainService, IAccountService accountService)
+        public GrpcServerService(IPeerPool peerPool, IBlockchainService blockchainService, IAccountService accountService,
+            IAEDPoSInformationProvider dpoSInformationProvider)
         {
             _peerPool = peerPool;
             _blockchainService = blockchainService;
             _accountService = accountService;
+            _dpoSInformationProvider = dpoSInformationProvider;
 
             EventBus = NullLocalEventBus.Instance;
             Logger = NullLogger<GrpcServerService>.Instance;
@@ -227,23 +233,34 @@ namespace AElf.OS.Network.Grpc
             return Task.FromResult(new VoidReply());
         }
 
-        public override Task<PeerPreLibConfirmReply> PreLibConfirm(PeerPreLibConfirm request, ServerCallContext context)
+        public override async Task<PeerPreLibConfirmReply> PreLibConfirm(PeerPreLibConfirm request, ServerCallContext context)
         {
-            var confirm = false;
             var hasBlock =
                 _peerPool.RecentBlockHeightAndHashMappings.TryGetValue(request.BlockHeight, out var blockHash) &&
                 blockHash == request.BlockHash;
+            if (!hasBlock) return new PeerPreLibConfirmReply {Confirm = false};
+            
+            var chain = await _blockchainService.GetChainAsync();
+            var chainContext = new ChainContext {BlockHash = chain.BestChainHash, BlockHeight = chain.BestChainHeight};
+            var pubkeyList = (await _dpoSInformationProvider.GetCurrentMinerList(chainContext)).ToList();
+            var peers = _peerPool.GetPeers().Where(p => pubkeyList.Contains(p.PubKey)).ToList();
+            var sureAmount = pubkeyList.Count.Mul(2).Div(3) + 1;
+            
             var hasPreLib =
                 _peerPool.PreLibBlockHeightAndHashMappings.TryGetValue(request.BlockHeight, out var preLibBlockInfo) &&
                 preLibBlockInfo.BlockHash == request.BlockHash;
-            if (hasBlock && hasPreLib)
-                confirm = true;
-            return Task.FromResult(new PeerPreLibConfirmReply {Confirm = confirm});
+            if(!hasPreLib) return new PeerPreLibConfirmReply {Confirm = false};
+            
+            var peersHadBlockCount = peers.Count(p =>
+                p.PreLibBlockHeightAndHashMappings.TryGetValue(request.BlockHeight, out preLibBlockInfo) &&
+                preLibBlockInfo.BlockHash == request.BlockHash);
+            
+            return new PeerPreLibConfirmReply {Confirm = peersHadBlockCount + 1 >= sureAmount};
         }
 
         /// <summary>
         /// This method returns a block. The parameter is a <see cref="BlockRequest"/> object, if the value
-        /// of <see cref="BlockRequest.Hash"/> is not null, the request is by ID, otherwise it will be
+        /// of <see cref="Hash"/> is not null, the request is by ID, otherwise it will be
         /// by height.
         /// </summary>
         public override async Task<BlockReply> RequestBlock(BlockRequest request, ServerCallContext context)

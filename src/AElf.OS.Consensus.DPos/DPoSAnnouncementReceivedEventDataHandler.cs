@@ -109,7 +109,7 @@ namespace AElf.OS.Consensus.DPos
                 if (!peer.RecentBlockHeightAndHashMappings.TryGetValue(preLibHeight, out var hash) || hash != blockHash)
                     continue;
                 if(!peer.PreLibBlockHeightAndHashMappings.TryGetValue(preLibHeight, out var blockInfo) ||
-                    blockInfo.BlockHash != blockHash || blockInfo.PreLibCount < sureAmount)
+                    blockInfo.BlockHash != blockHash)// || blockInfo.PreLibCount < sureAmount)
                     continue;
                 peersHadBlockCount++;
             }

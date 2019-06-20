@@ -174,7 +174,7 @@ namespace AElf.OS.Network.Grpc
         {
             var request = new GrpcRequest
             {
-                ErrorMessage = $"Broadcast announce for {peerPreLibAnnouncement.BlockHash} failed.",
+                ErrorMessage = $"Broadcast pre lib for {peerPreLibAnnouncement.BlockHash} failed.",
                 MetricName = nameof(MetricNames.PreLibAnnounce),
                 MetricInfo = $"Block hash {peerPreLibAnnouncement.BlockHash}"
             };
