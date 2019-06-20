@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using AElf.Kernel;
@@ -81,70 +82,91 @@ namespace AElf.OS.Consensus.DPos
 
         public async Task<IBlockIndex> FindLastLastIrreversibleBlockAsync()
         {
-            Logger.LogDebug("FindLastLastIrreversibleBlock start");
-            var chain = await _blockchainService.GetChainAsync();
-            
-            var preLibHeight = chain.BestChainHeight - 10;
-            if (preLibHeight <= chain.LastIrreversibleBlockHeight) return null;
-            
-            var chainContext = new ChainContext {BlockHash = chain.BestChainHash, BlockHeight = chain.BestChainHeight};
-            var pubkeyList = (await _dpoSInformationProvider.GetCurrentMinerList(chainContext)).ToList();
-
-            var peers = _peerPool.GetPeers().Where(p => pubkeyList.Contains(p.PubKey)).ToList();
-
-            var pubKey = (await _accountService.GetPublicKeyAsync()).ToHex();
-            if (peers.Count == 0 && !pubkeyList.Contains(pubKey))
-                return null;
-            
-            var sureAmount = pubkeyList.Count.Mul(2).Div(3) + 1;
-            var hasBlock = _peerPool.RecentBlockHeightAndHashMappings.TryGetValue(preLibHeight, out var blockHash);
-            if (!hasBlock)
+            try
             {
-                Logger.LogDebug($"FindLastLastIrreversibleBlock end 1,height:{preLibHeight}");
-                return null;
+                Logger.LogDebug("FindLastLastIrreversibleBlock start");
+                var chain = await _blockchainService.GetChainAsync();
+
+                var preLibHeight = chain.BestChainHeight - 10;
+                if (preLibHeight <= chain.LastIrreversibleBlockHeight)
+                {
+                    Logger.LogDebug(
+                        $"FindLastLastIrreversibleBlock end 1,height:{preLibHeight},best:{chain.BestChainHeight}");
+                    return null;
+                }
+
+                var chainContext = new ChainContext
+                    {BlockHash = chain.BestChainHash, BlockHeight = chain.BestChainHeight};
+                var pubkeyList = (await _dpoSInformationProvider.GetCurrentMinerList(chainContext)).ToList();
+
+                var peers = _peerPool.GetPeers().Where(p => pubkeyList.Contains(p.PubKey)).ToList();
+
+                var pubKey = (await _accountService.GetPublicKeyAsync()).ToHex();
+                if (peers.Count == 0 && !pubkeyList.Contains(pubKey))
+                {
+                    Logger.LogDebug($"FindLastLastIrreversibleBlock end 5,height:{preLibHeight}");
+                    return null;
+                }
+
+                var sureAmount = pubkeyList.Count.Mul(2).Div(3) + 1;
+                var hasBlock = _peerPool.RecentBlockHeightAndHashMappings.TryGetValue(preLibHeight, out var blockHash);
+                if (!hasBlock)
+                {
+                    Logger.LogDebug($"FindLastLastIrreversibleBlock end 1,height:{preLibHeight}");
+                    return null;
+                }
+
+                if (!_peerPool.PreLibBlockHeightAndHashMappings.TryGetValue(preLibHeight, out var preLibBlockInfo) ||
+                    preLibBlockInfo.BlockHash != blockHash && preLibBlockInfo.PreLibCount < sureAmount)
+                {
+                    Logger.LogDebug($"FindLastLastIrreversibleBlock end 2,height:{preLibHeight}");
+                    return null;
+                }
+
+                var peersHadBlockCount = 0;
+                foreach (var peer in peers)
+                {
+                    if (!peer.RecentBlockHeightAndHashMappings.TryGetValue(preLibHeight, out var hash) ||
+                        hash != blockHash)
+                        continue;
+                    if (!peer.PreLibBlockHeightAndHashMappings.TryGetValue(preLibHeight, out var blockInfo) ||
+                        blockInfo.BlockHash != blockHash) // || blockInfo.PreLibCount < sureAmount)
+                        continue;
+                    peersHadBlockCount++;
+                }
+
+                if (pubkeyList.Contains(pubKey))
+                    peersHadBlockCount++;
+                if (peersHadBlockCount < sureAmount)
+                {
+                    Logger.LogDebug($"FindLastLastIrreversibleBlock end 3,height:{preLibHeight}");
+                    return null;
+                }
+
+                var peerPreLibConfirm = new PeerPreLibConfirm
+                {
+                    BlockHash = blockHash,
+                    BlockHeight = preLibHeight,
+                    PreLibCount = preLibBlockInfo.PreLibCount
+                };
+
+                var tasks = peers.Select(peer => peer.PreLibConfirmAsync(peerPreLibConfirm)).ToList();
+                await Task.WhenAll(tasks);
+                if (tasks.Count(t => t.IsCompleted && t.Result) + 1 < sureAmount)
+                {
+                    Logger.LogDebug($"FindLastLastIrreversibleBlock end 4,height:{preLibHeight}");
+                    return null;
+                }
+
+                Logger.LogDebug($"LIB found in network layer: height {preLibHeight}");
+                return new BlockIndex(blockHash, preLibHeight);
+            }
+            catch (Exception e)
+            {
+                Logger.LogError(e, "FindLastLastIrreversibleBlock error");
+                throw;
             }
 
-            if (!_peerPool.PreLibBlockHeightAndHashMappings.TryGetValue(preLibHeight, out var preLibBlockInfo) ||
-                preLibBlockInfo.BlockHash != blockHash && preLibBlockInfo.PreLibCount < sureAmount)
-            {
-                Logger.LogDebug($"FindLastLastIrreversibleBlock end 2,height:{preLibHeight}");
-                return null;
-            }
-
-            var peersHadBlockCount = 0;
-            foreach (var peer in peers)
-            {
-                if (!peer.RecentBlockHeightAndHashMappings.TryGetValue(preLibHeight, out var hash) || hash != blockHash)
-                    continue;
-                if(!peer.PreLibBlockHeightAndHashMappings.TryGetValue(preLibHeight, out var blockInfo) ||
-                    blockInfo.BlockHash != blockHash)// || blockInfo.PreLibCount < sureAmount)
-                    continue;
-                peersHadBlockCount++;
-            }
-            if (pubkeyList.Contains(pubKey))
-                peersHadBlockCount++;
-            if (peersHadBlockCount < sureAmount)
-            {
-                Logger.LogDebug($"FindLastLastIrreversibleBlock end 3,height:{preLibHeight}");
-                return null;
-            }
-
-            var peerPreLibConfirm = new PeerPreLibConfirm
-            {
-                BlockHash = blockHash,
-                BlockHeight = preLibHeight,
-                PreLibCount = preLibBlockInfo.PreLibCount
-            };
-
-            var tasks = peers.Select(peer => peer.PreLibConfirmAsync(peerPreLibConfirm)).ToList();
-            await Task.WhenAll(tasks);
-            if (tasks.Count(t => t.IsCompleted && t.Result) + 1 < sureAmount)
-            {
-                Logger.LogDebug($"FindLastLastIrreversibleBlock end 4,height:{preLibHeight}");
-                return null;
-            }
-            Logger.LogDebug($"LIB found in network layer: height {preLibHeight}");
-            return new BlockIndex(blockHash, preLibHeight);
         }
     }
 }
